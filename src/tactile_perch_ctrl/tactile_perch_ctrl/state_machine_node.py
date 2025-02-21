@@ -21,16 +21,16 @@ class StateMachineNode(Node):
         # Declare all parameters
         self.declare_parameter("frequency", 20.0)
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 250Hz, so 10 samples corresponds to 0.025 seconds
-        self.declare_parameter("touch_threshold", 100)
+        self.declare_parameter("touch_threshold", 10)
         # Get all parameters
         self.frequency = self.get_parameter("frequency").get_parameter_value().double_value
         self.touch_window_size = self.get_parameter("touch_window_size").get_parameter_value().integer_value
         self.TOUCH_THRESHOLD = self.get_parameter("touch_threshold").get_parameter_value().integer_value
 
         # Init queue for touch data
-        self.touch_data_deque = deque(np.zeros([12]), maxlen=self.touch_window_size)
-        self.touch_data_baseline_deque = deque(np.zeros([12]), maxlen=self.touch_window_size)
-       
+        self.touch_data_deque = deque(np.zeros([1, 12], dtype=int), maxlen=self.touch_window_size)
+        self.touch_data_baseline_deque = deque(np.zeros([1, 12], dtype=int), maxlen=self.touch_window_size)
+
         # Publishers
         self._ref_pos_publisher = self.create_publisher(PoseStamped, '/feely_drone/in/ref_pose', qos_profile_sensor_data)
         self._ref_joint_state_publisher = self.create_publisher(JointState, '/feely_drone/in/ref_joint_state', qos_profile_sensor_data)
@@ -168,10 +168,10 @@ class StateMachineNode(Node):
 
     def touch_data_callback(self, msg: TouchData):
         self.touch_data_deque.popleft()
-        self.touch_data_deque.append(np.array(TouchData.raw_data, dtype=float))
+        self.touch_data_deque.append(np.array(msg.raw_data, dtype=int))
 
         self.touch_data_baseline_deque.popleft()
-        self.touch_data_baseline_deque.append(np.array(TouchData.baseline_data, dtype=float))
+        self.touch_data_baseline_deque.append(np.array(msg.baseline_data, dtype=int))
 
     def odometry_data_callback(self, msg: PoseStamped):
         self._position = np.array([msg.pose.position.x,
