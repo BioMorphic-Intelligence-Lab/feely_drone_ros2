@@ -16,10 +16,12 @@ class TouchSensorDriver(Node):
 
     def __init__(self):
         super().__init__('mpr121_publisher')
-        self._touch_data_publisher = self.create_publisher(TouchData, '/touch_sensor/data', qos.QoSPresetProfiles.SENSOR_DATA.value)
+        self._touch_data_publisher = self.create_publisher(TouchData, '/feely_drone/touch_data', qos.QoSPresetProfiles.SENSOR_DATA.value)
 
-        timer_period = 1e-3  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        # Get parameters
+        self.declare_parameter("frequency", 250.0)
+        self.frequency = self.get_parameter("frequency").get_parameter_value().double_value
+        self.timer = self.create_timer(1.0 / self.frequency, self.timer_callback)
         # Create I2C bus.
         self.i2c = busio.I2C(board.SCL, board.SDA)
         # Create MPR121 object.
@@ -30,13 +32,6 @@ class TouchSensorDriver(Node):
         self._init_state = self.check_for_raw_data()
     
     def timer_callback(self):
-
-        # touch_event = self.check_for_touch_event()
-        # touch_msg = StampedInt32MultiArray()
-        # touch_msg.data = touch_event
-        # touch_msg.timestamp = self._get_timestamp()
-        # self._touch_publiser.publish(touch_msg)
-
         msg = TouchData()
         msg.header.timestamp = rclpy.now().to_msg()
         
@@ -59,14 +54,14 @@ class TouchSensorDriver(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    minimal_publisher = TouchSensorDriver()
+    touch_sensor_driver = TouchSensorDriver()
 
-    rclpy.spin(minimal_publisher)
+    rclpy.spin(touch_sensor_driver)
 
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
-    minimal_publisher.destroy_node()
+    touch_sensor_driver.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
