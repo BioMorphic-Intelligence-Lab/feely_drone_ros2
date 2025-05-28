@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'touch_sensor_driver = tactile_perch_ctrl.touch_sensor_driver:main'
         ],
     },
 )
