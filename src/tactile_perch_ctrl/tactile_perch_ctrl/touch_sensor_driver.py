@@ -33,7 +33,7 @@ class TouchSensorDriver(Node):
     
     def timer_callback(self):
         msg = TouchData()
-        msg.header.timestamp = self.get_clock().now().to_msg()
+        msg.header.stamp = self.get_clock().now().to_msg()
         
         msg.raw_data = self.check_for_raw_data()
         msg.filtered_data = self.check_for_filtered_data()
