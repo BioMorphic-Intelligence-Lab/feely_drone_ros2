@@ -1,3 +1,0 @@
-[submodule "src/feetech_ros2_driver"]
-	path = src/feetech_ros2_driver
-	url = git@github.com:BioMorphic-Intelligence-Lab/feetech_ros2_driver.git
