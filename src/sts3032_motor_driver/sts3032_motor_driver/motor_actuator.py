@@ -1,9 +1,10 @@
 from dataclasses import dataclass, fields,asdict
 import dataclasses 
 from typing import List, Optional, Tuple, Union
+import numpy as np
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Int8
+from std_msgs.msg import Int8, Float32MultiArray
 import serial
 import struct
 from time import sleep
@@ -347,7 +348,7 @@ class MotorDriver(Node):
         timer_period = 0.1  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
-        self.declare_parameter('open_servo_position', [7000, 6000, 7500])
+        self.declare_parameter('open_servo_position', [10000, 8500, 6000])
         self.declare_parameter('close_servo_position', [500, 500, 500])
 
         self._open_gripper_command = self.get_parameter('open_servo_position').get_parameter_value().integer_array_value
@@ -357,7 +358,7 @@ class MotorDriver(Node):
         print(f'Using close gripper command {self._close_gripper_command}')
 
         self.subscription = self.create_subscription(
-            Int8,
+            Float32MultiArray,
             '/gripper/in/gripper_state',
             self.listener_callback,
             10)
@@ -383,22 +384,21 @@ class MotorDriver(Node):
             self.serial_connection.open()
         command = msg.data
 
-        if command == OPEN and self.gripper_state != OPEN:
-            for i in range(10):
-                self.open_gripper()
+        #if command == OPEN and self.gripper_state != OPEN:
+        for i in range(10):
+            self.open_gripper(command)
 
-        if command == CLOSED and self.gripper_state != CLOSED:
-            for i in range(10):
-                self.close_gripper()
-
+        #if command == CLOSED and self.gripper_state != CLOSED:
+         
         self.serial_connection.close()
 
         return
 
-    def open_gripper(self):
+    def open_gripper(self, val):
+        val = np.clip(val, 0, 1)
         payload = create_payload_package()
         payload.arm_servos.value = 1 
-        positions = self._open_gripper_command
+        positions = self._close_gripper_command + val * (self._open_gripper_command - self._close_gripper_command)
         for idx, position in enumerate(positions):
             servo_id = idx+1
             setattr(payload,f'servo_angle_{servo_id}', Int16(position)) 
