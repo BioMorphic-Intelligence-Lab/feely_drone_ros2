@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple, Union
 import rclpy
 import numpy as np
 from rclpy.node import Node
-from sensors_msgs.msg import JointState
+from sensor_msgs.msg import JointState
 import serial
 import struct
 from time import sleep
