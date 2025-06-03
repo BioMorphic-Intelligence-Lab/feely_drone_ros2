@@ -347,7 +347,7 @@ class MotorDriver(Node):
         timer_period = 0.1  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
-        self.declare_parameter('open_servo_position', [6000, 6000, 6000])
+        self.declare_parameter('open_servo_position', [7000, 6000, 7500])
         self.declare_parameter('close_servo_position', [500, 500, 500])
 
         self._open_gripper_command = self.get_parameter('open_servo_position').get_parameter_value().integer_array_value
