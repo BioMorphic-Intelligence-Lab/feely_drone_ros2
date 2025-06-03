@@ -347,11 +347,11 @@ class MotorDriver(Node):
         timer_period = 0.1  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
-        self.declare_parameter('open_servo_position', 7500)
-        self.declare_parameter('close_servo_position', 500)
+        self.declare_parameter('open_servo_position', [6000, 6000, 6000])
+        self.declare_parameter('close_servo_position', [500, 500, 500])
 
-        self._open_gripper_command = self.get_parameter('open_servo_position').get_parameter_value().integer_value
-        self._close_gripper_command = self.get_parameter('close_servo_position').get_parameter_value().integer_value
+        self._open_gripper_command = self.get_parameter('open_servo_position').get_parameter_value().integer_array_value
+        self._close_gripper_command = self.get_parameter('close_servo_position').get_parameter_value().integer_array_value
 
         print(f'Using open gripper command {self._open_gripper_command}')
         print(f'Using close gripper command {self._close_gripper_command}')
@@ -398,7 +398,7 @@ class MotorDriver(Node):
     def open_gripper(self):
         payload = create_payload_package()
         payload.arm_servos.value = 1 
-        positions = [self._open_gripper_command,self._open_gripper_command,self._open_gripper_command]
+        positions = self._open_gripper_command
         for idx, position in enumerate(positions):
             servo_id = idx+1
             setattr(payload,f'servo_angle_{servo_id}', Int16(position)) 
@@ -417,7 +417,7 @@ class MotorDriver(Node):
     def close_gripper(self):
         payload = create_payload_package()
         payload.arm_servos.value = 1 
-        positions = [self._close_gripper_command,self._close_gripper_command,self._close_gripper_command]
+        positions = self._close_gripper_command
         for idx, position in enumerate(positions):
             print(f"Setting position for servo {idx} to {position}")
             
