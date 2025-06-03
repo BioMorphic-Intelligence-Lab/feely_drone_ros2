@@ -351,8 +351,8 @@ class MotorDriver(Node):
         self.declare_parameter('open_servo_position', [10000, 8500, 6000])
         self.declare_parameter('close_servo_position', [500, 500, 500])
 
-        self._open_gripper_command = self.get_parameter('open_servo_position').get_parameter_value().integer_array_value
-        self._close_gripper_command = self.get_parameter('close_servo_position').get_parameter_value().integer_array_value
+        self._open_gripper_command = np.array(self.get_parameter('open_servo_position').get_parameter_value().integer_array_value)
+        self._close_gripper_command = np.array(self.get_parameter('close_servo_position').get_parameter_value().integer_array_value)
 
         print(f'Using open gripper command {self._open_gripper_command}')
         print(f'Using close gripper command {self._close_gripper_command}')
