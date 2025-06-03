@@ -2,9 +2,8 @@ from dataclasses import dataclass, fields,asdict
 import dataclasses 
 from typing import List, Optional, Tuple, Union
 import rclpy
-import numpy as np
 from rclpy.node import Node
-from sensor_msgs.msg import JointState
+from std_msgs.msg import Int8
 import serial
 import struct
 from time import sleep
@@ -333,6 +332,11 @@ def set_servo_positions(serial_connection: serial.Serial, positions, servos: Lis
 
     return    
 
+
+OPEN = 1
+CLOSED = 0 
+IDLE = -1
+
 SETPOINT_COUNTER = 10
 class MotorDriver(Node):
 
@@ -353,12 +357,12 @@ class MotorDriver(Node):
         print(f'Using close gripper command {self._close_gripper_command}')
 
         self.subscription = self.create_subscription(
-            JointState,
+            Int8,
             '/gripper/in/gripper_state',
             self.listener_callback,
             10)
         self.publisher = self.create_publisher(
-            JointState,
+            Int8,
             '/gripper/out/gripper_state',
             10
         )
@@ -367,32 +371,34 @@ class MotorDriver(Node):
         self.servo_1 = Servo(servo_id=1)
         self.servo_2 = Servo(servo_id=2)
         self.servo_3 = Servo(servo_id=3)
+        self.gripper_state = IDLE
 
     def timer_callback(self):
-        msg = JointState()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.name = ['finger_1', 'finger_2', 'finger_3']
-        msg.position = (np.array([self.servo_1.servo_angle.value,
-                                self.servo_2.servo_angle.value,
-                                self.servo_3.servo_angle.value]) 
-                                - self._close_gripper_command) / (self._open_gripper_command - self._close_gripper_command)
+        msg = Int8()
+        msg.data = self.gripper_state
         self.publisher.publish(msg)
         
     def listener_callback(self, msg):
         if not self.serial_connection.isOpen():
             self.serial_connection.open()
-        command = msg.position
+        command = msg.data
 
-        self.open_gripper(command)
+        if command == OPEN and self.gripper_state != OPEN:
+            for i in range(10):
+                self.open_gripper()
+
+        if command == CLOSED and self.gripper_state != CLOSED:
+            for i in range(10):
+                self.close_gripper()
 
         self.serial_connection.close()
+
         return
 
-    def open_gripper(self, command):
+    def open_gripper(self):
         payload = create_payload_package()
         payload.arm_servos.value = 1 
-        positions = (self._open_gripper_command - self._close_gripper_command) * \
-            np.clip(command, 0, 1) + self._close_gripper_command
+        positions = [self._open_gripper_command,self._open_gripper_command,self._open_gripper_command]
         for idx, position in enumerate(positions):
             servo_id = idx+1
             setattr(payload,f'servo_angle_{servo_id}', Int16(position)) 
@@ -405,7 +411,25 @@ class MotorDriver(Node):
         self.serial_connection.write(payload_out)
         self.serial_connection.flush()
         sleep(1)
+        self.gripper_state = OPEN
         return   
+
+    def close_gripper(self):
+        payload = create_payload_package()
+        payload.arm_servos.value = 1 
+        positions = [self._close_gripper_command,self._close_gripper_command,self._close_gripper_command]
+        for idx, position in enumerate(positions):
+            print(f"Setting position for servo {idx} to {position}")
+            
+        buffer = create_serial_bufer(payload)
+        payload_out = struct.pack(struct_out, *buffer.get_data(), buffer.get_checksum())
+
+        self.serial_connection.write(START_BYTE)
+        self.serial_connection.write(payload_out)
+        self.serial_connection.flush()
+        sleep(1)
+        self.gripper_state = CLOSED
+        return    
 
 def main(args=None):
     rclpy.init(args=args)
@@ -433,5 +457,3 @@ if __name__ == '__main__':
 
 
         
-
-
