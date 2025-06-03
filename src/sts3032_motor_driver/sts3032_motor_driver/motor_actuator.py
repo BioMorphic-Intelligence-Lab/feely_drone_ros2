@@ -398,7 +398,7 @@ class MotorDriver(Node):
         val = np.clip(val, 0, 1)
         payload = create_payload_package()
         payload.arm_servos.value = 1 
-        positions = self._close_gripper_command + val * (self._open_gripper_command - self._close_gripper_command)
+        positions = Int16(self._close_gripper_command + val * (self._open_gripper_command - self._close_gripper_command))
         for idx, position in enumerate(positions):
             servo_id = idx+1
             setattr(payload,f'servo_angle_{servo_id}', Int16(position)) 
