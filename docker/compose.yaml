@@ -1,13 +1,19 @@
-version: '3.8'
-
 services:
-  teensy-uros-agent:
-    image: antbre/uxrce-agent
+  teensy-uxrce-agent:
+    image: antbre/uxrce_agent
     privileged: true
     network_mode: 'host'
-    command: serial --dev /dev/ttyACM0 -b 921600
+    command: serial --dev /dev/ttyACM0
 
-  track-ball-and-imu-driver:
-    image: antbre/tactile-odometry-drone
+  px4-uxrce-agent:
+    image: antbre/uxrce_agent
+    privileged: true
+    network_mode: 'host'
+    command: serial --dev /dev/ttyAMA0 -b 921600
+
+  tactile-sensor-driver:
+    image: antbre/tactile_sensor_driver
     privileged: true 
     network_mode: 'host'
+
+  # Start state machine
