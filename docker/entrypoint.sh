@@ -5,4 +5,4 @@ cd /home/user/ros/ws
 . /opt/ros/${ROS_DISTRO}/setup.sh
 . install/setup.bash
 
-exec ros2 run tactile_perch_ctrl touch_sensor_driver
+exec ros2 launch tactile_perch_ctrl onboard.launch.py
