@@ -26,7 +26,7 @@ setup(
     entry_points={
         'console_scripts': [
             'touch_sensor_driver = tactile_perch_ctrl.touch_sensor_driver:main',
-            'feely_drone_state_machine = tactile_perch_ctrl.state_machine:main'
+            'feely_drone_state_machine = tactile_perch_ctrl.state_machine_node:main'
         ],
     },
 )

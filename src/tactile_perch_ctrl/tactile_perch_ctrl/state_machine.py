@@ -1,86 +1,397 @@
-import rclpy
 import numpy as np
-from collections import deque
-from rclpy.node import Node
-from rclpy import qos
+from enum import Enum
+from .search_pattern import (LinearSearchPattern,
+                             SinusoidalSearchPattern,
+                             CompositeSearchPattern)
 
-from geometry_msgs.msg import PoseStamped
-from sensor_msgs.msg import JointState
-from custom_msgs.msg import TouchData
+class State(Enum):
+    UNDEFINED = 0
+    SEARCHING = 1
+    TOUCHED = 2
+    APPROACH = 3
+    POSITION = 4
+    ROTATION = 5
+    FINALIZE = 6
+    PERCH = 7
+    ABORT = 8
 
-class StateMachine(Node):
+class StateMachine(object):
 
-    def __init__(self):
-        super().__init__('feely_drone_state_machine')
+    def __init__(self,
+                 dt, m_arm, l_arm, K, A, g, q0, 
+                 p0, rot0,
+                 searching_pattern=None,
+                 target_pos_estimate=np.array([0, 0, 0.5]),
+                 target_yaw_estimate=np.zeros(1),
+                 alpha_rate=1.0/5.0):
 
-        # Declare all parameters
-        self.declare_parameter("frequency", 20.0)
-        self.declare_parameter("touch_window_size", 125) # This assumes touch data is published at 250Hz, so 125 samples corresponds to 0.5 seconds
-        self.declare_parameter("touch_threshold", 100)
-        # Get all parameters
-        self.frequency = self.get_parameter("frequency").get_parameter_value().double_value
-        self.touch_window_size = self.get_parameter("touch_window_size").get_parameter_value().integer_value
-        self.TOUCH_THRESHOLD = self.get_parameter("touch_threshold").get_parameter_value().integer_value
+        if searching_pattern is None:
+            self.searching_pattern = (CompositeSearchPattern([
+                    SinusoidalSearchPattern(params=np.stack([[0.75, 0.75, 0], # Amplitude
+                                                     [2.0, 1.0, 0.0], # Frequency
+                                                     [0.0, 0.0, 0.0], # Phase Shift
+                                                     target_pos_estimate]) # Offset
+                                        )
+                    ])
+            )
+        else:
+            self.searching_pattern = searching_pattern
 
-        # Init queue for touch data
-        self.touch_data_deque = deque(np.zeros([self.touch_window_size, 12]))
-       
-        # Publishers
-        self._ref_pos_publisher = self.create_publisher(PoseStamped, '/feely_drone/ref_pose', qos.QoSPresetProfiles.SENSOR_DATA.value)
-        self._ref_joint_state_publisher = self.create_publisher(JointState, '/feely_drone/ref_joint_state', qos.QoSPresetProfiles.SENSOR_DATA.value)
-        self._bin_touch_data_publisher = self.create_publisher(JointState, '/feely_drone/bin_touch_state', qos.QoSPresetProfiles.SENSOR_DATA.value)
-        # Subscribers
-        self._touch_data_subscriber = self.create_subscription(TouchData, '/feely_drone/touch_data', self.touch_data_callback, qos.QoSPresetProfiles.SENSOR_DATA.value)
-
-        self.timer = self.create_timer(1.0 / self.frequency, self.timer_callback)
-
-    def timer_callback(self):
-        # Get the reference pose and joint state messages
-        pose_msg, joint_state_msg = self.get_references()
-        # Publish the reference pose and joint state messages
-        self._ref_pos_publisher.publish(pose_msg)
-        self._ref_joint_state_publisher.publish(joint_state_msg)
-
-    def get_references(self):
-        timestamp_now = self.get_clock().now().to_msg()
-        pose = PoseStamped()
-        jointReference = JointState()
-        binTouchState = JointState()
-
-        pose.header.stamp = timestamp_now
-        pose.header.frame_id = 'world'
-        jointReference.header.stamp = timestamp_now
-        jointReference.name = [f'arm{i+1}' for i in range(3)]
-        binTouchState.header.stamp = timestamp_now
+        self.dt = dt
+        self.t = 0
+        self.init_target_pos_estimate = target_pos_estimate.copy()
+        self.init_target_yaw_estimate = target_yaw_estimate.copy()
+        self.target_yaw_estimate = target_yaw_estimate
+        self.target_pos_estimate = target_pos_estimate
+        self.alpha_rate = alpha_rate
+        self.alpha = np.ones(3)
+        self.state = State.SEARCHING      
         
-        # Compute the current touch state and publish for debugging purposes
-        touch_state = np.mean(self.touch_data_deque, axis=0) > self.TOUCH_THRESHOLD
-        binTouchState.position = touch_state.astype(float)
-        self._bin_touch_data_publisher.publish(binTouchState)
+        self.tactile_info_sw = np.zeros([10, 3, 3], dtype=float)
+
+        self.p0 = p0
+        self.rot0 = rot0
+        self.K = K
+        self.q0 = q0
+        self.A = A
+        self.g = g
+        self.l = l_arm
+        self.M_g = np.array([
+            [(np.sum(m_arm)*0.5*l_arm[0]), np.sum(m_arm[1:])*0.5*l_arm[1], m_arm[2]*0.5*l_arm[2]],
+            [                         0.0, np.sum(m_arm[1:])*0.5*l_arm[1], m_arm[2]*0.5*l_arm[2]],
+            [                         0.0,                            0.0, m_arm[2]*0.5*l_arm[2]]
+        ])
+
+        self.reference_pos = np.zeros(3)
+        self.contact_locs = self.forward_kinematics(np.zeros(4), np.reshape([q0] * 3, [3,3]))
+
+        self.tau_min=-1
+
+    def reset(self):
+
+        self.t=0
+        self.target_pos_estimate = self.init_target_pos_estimate.copy()
+        self.target_yaw_estimate = self.init_target_yaw_estimate.copy()
+        self.alpha = np.ones(3)
+        self.state = State.SEARCHING   
+        self.searching_pattern.reset()
+
+        self.tactile_info_sw = np.zeros([10, 3, 3], dtype=float)
         
-        # ToDo Compute reference pose and 
-        jointReference.position = np.zeros(3)
+        self.reference_pos = np.zeros(3)
+        self.contact_locs = self.forward_kinematics(np.zeros(4), np.reshape([self.q0] * 3, [3,3]))
+
+        self.tau_min=-1
 
 
-        return pose, jointReference
+    def get_des_yaw_vel(self, contacts, rot_vel=1.0):
+        rows = np.sum(np.array([1.0, 3.0, 2.0]) * contacts, axis=1)
+        if rows[0] == rows[2]:
+            return 0.0
+        elif rows[0] > rows[2]:
+            return -rot_vel
+        elif rows[2] > rows[0]:
+            return rot_vel
+        else:
+            return 0.0
+
+    def searching_position_control(self, x, v, contact):
+
+        # Explicitly state that we are not using this here
+        _ = contact
+
+        # Extract new desired control values
+        p_des, v_des, self.tau_min = self.searching_pattern.get_ref_pos_vel(x=x[:3], last_tau=self.tau_min)
+
+        if self.tau_min >= 0.99:
+            self.searching_pattern.step_height(0.075)
+            self.target_pos_estimate[2] += 0.1
+            self.tau_min = -1
+
+        yaw_des = self.target_yaw_estimate
+        
+        # Return control actions
+        return {'alpha': self.alpha,
+                'p_des': p_des,
+                'yaw_des': yaw_des}
+
+    def position_align_control(self, x, v, contact, p_des=None):
+        
+        
+        if p_des is None:
+            p_des = self.target_pos_estimate
+        yaw_des = self.target_yaw_estimate
+
+        
+        
+        return {'alpha': self.alpha,
+                'p_des': p_des,
+                'yaw_des': yaw_des}
+    
+    def abort_control(self, x, v, contact):
+        
+        
+        p_des = self.target_pos_estimate
+        yaw_des = self.target_yaw_estimate
+        
+        self.alpha = np.ones(3)
+        
+        
+        return {'alpha': self.alpha,
+                'p_des': p_des,
+                'yaw_des': yaw_des}
+
+    def position_fine_alignment(self, contact, del_p=0.01):
+        contact_yp = contact[0, :] | contact[2, :]
+        contact_ym = contact[1, :]
+
+        if np.sum(1 * contact_yp) > np.sum(1 * contact_ym):
+            return np.array([0, del_p, 0])
+        elif np.sum(1 * contact_yp) < np.sum(1 * contact_ym):
+            return np.array([0, -del_p, 0])
+        else:
+            return np.zeros(3)
+
+    def rotation_align_control(self, x, v, contact):
+        
+        omega_des = self.get_des_yaw_vel(contact)
+        self.target_yaw_estimate += self.dt * omega_des
+        
+        yaw_des = self.target_yaw_estimate
+
+        cT = np.cos(x[3])
+        sT = np.sin(x[4])
+
+        rot = np.array([[cT, -sT, 0],
+                        [sT,  cT, 0],
+                        [ 0,   0, 1]])
+        
+        if contact.any() and np.linalg.norm(self.target_pos_estimate[:2] - x[:2]) < 0.01:
+            delta_p = rot @ self.position_fine_alignment(contact)
+            self.target_pos_estimate += delta_p
+        
+        p_des = self.target_pos_estimate
+
+        dalpha = -self.alpha_rate * self.dt * np.ones(3)
+        indeces = ~contact.any(axis=1)
+        self.alpha[indeces] += dalpha[indeces]
+        self.alpha = np.clip(self.alpha, a_min=0.0, a_max=1.0)
+        
+
+        return {'alpha': self.alpha,
+                'p_des': p_des,
+                'yaw_des': yaw_des}
+
+    def finalize_grasp_control(self, x, v, contact):
+            
+        p_des = self.target_pos_estimate
+        yaw_des = self.target_yaw_estimate
+
+        self.alpha = np.ones(3) * np.min(self.alpha)
+        
+        return {'alpha': self.alpha,
+                'p_des': p_des,
+                'yaw_des': yaw_des}
+    
+    def perch_control(self, x, v, contact):
+
+        p_des = self.target_pos_estimate
+        omega_des = self.get_des_yaw_vel(contact, rot_vel=0.01)
+        self.target_yaw_estimate += self.dt * omega_des
+        yaw_des = self.target_yaw_estimate
+
+        self.alpha = np.ones(3) * np.min(self.alpha)
+        
+        
+        return {'alpha': self.alpha,
+                'p_des': p_des,
+                'yaw_des': yaw_des}
+    
+    def compute_gravity_tau(self, q):
+        """ Compute gravity torques tau(q) """
+        C = np.array([np.cos(q[0]), np.cos(q[0] + q[1]), np.cos(q[0] + q[1] + q[2])])
+        return np.linalg.norm(self.g) * self.M_g @ C
+
+    def compute_jacobian(self, q):
+        """ Compute Jacobian J_g(q) """
+        S = np.array([
+            [np.sin(q[0]), np.sin(q[0] + q[1]), np.sin(q[0] + q[1] + q[2])],
+            [0, np.sin(q[0] + q[1]), np.sin(q[0] + q[1] + q[2])],
+            [0, 0, np.sin(q[0] + q[1] + q[2])]
+        ])
+        J_tau = -np.linalg.norm(self.g) * self.M_g @ S
+        return J_tau + self.K
+
+    def newton_solve(self, tau_act, tol=1e-6, max_iter=100):
+        """ Solve g(q) = 0 using Newton's method """
+        q = np.zeros(3)
+
+        for i in range(max_iter):
+            tau = self.compute_gravity_tau(q)
+            g_q = tau + self.K @ (q - self.q0) - self.A * tau_act
+
+            if np.linalg.norm(g_q) < tol:
+                return q
+
+            J_g = self.compute_jacobian(q)
+            delta_q = np.linalg.solve(J_g, -g_q)
+            q += delta_q
+
+        return q
+    
+    def find_steady_state_config(self, alpha):
+        config = self.newton_solve(alpha)
+        return config
 
 
-    def touch_data_callback(self, msg: TouchData):
-        self.touch_data_deque.popleft()
-        self.touch_data_deque.append(TouchData.raw_data)
+    def forward_kinematics(self, p, joint_angles):
+        """
+        Computes the forward kinematics for a system with 3 arms, each with 3 links.
+        
+        Args:
+           p: np.array (4), xyz and yaw [rad] position of base
+           joint_angles: np.array (3,3), joint angles [arm, link].
 
-def main(args=None):
-    rclpy.init(args=args)
+        Returns:
+            positions: np.array (3,3,3), containing XYZ positions of link centers.
+        """
+        positions = np.zeros((3, 3, 3))
 
-    feely_drone_state_machine = StateMachine()
+        for i in range(3):  # Iterate over arms
+            
+            cT, sT = np.cos(p[3]), np.sin(p[3])
+            R_prev = np.array([
+                [cT, -sT, 0],
+                [sT,  cT, 0],
+                [0,    0, 1]
+            ])               # Start with base rotation
+            p_prev = p[:3] + R_prev @ self.p0[i, :]   # Start with base position
+            R_prev = R_prev @ self.rot0[i, :, :] # Add arm rotation
+            
+            for j in range(3):  # Iterate over links
+                # Joint rotation (assuming rotation around Z-axis for simplicity)
+                cT, sT = np.cos(joint_angles[i, j]), np.sin(joint_angles[i, j])
+                R_joint = np.array([
+                    [1,  0,   0],
+                    [0, cT, -sT],
+                    [0, sT,  cT]
+                ])
+                # Compute current rotation
+                R_current = R_prev @ R_joint
+                
+                # Compute current position
+                p_current = p_prev + R_prev @ np.array([0, 0, self.l[j]])
+                
+                # Store the position
+                positions[i, j] = p_current #- R_prev @ np.array([self.l[j] / 2, 0, 0])
+                
+                # Update for next iteration
+                R_prev = R_current
+                p_prev = p_current
 
-    rclpy.spin(feely_drone_state_machine)
+        return positions
 
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
-    feely_drone_state_machine.destroy_node()
-    rclpy.shutdown()
+    def get_contact_sensor_location(self, p):
 
-if __name__ == '__main__':
-    main()
+        config = self.find_steady_state_config(self.alpha)
+        config = np.reshape([config] * 3, [3,3])
+        locs = self.forward_kinematics(p, config)
+
+        return locs
+
+    def get_new_ref_pos(self, x, contact):     
+
+        cntc_sens_loc = self.get_contact_sensor_location(x[:4])
+        
+        ref_pos = np.zeros(3, dtype=float)
+        cntc_pts = 0.0
+        for i in range(len(contact)):
+            for j in range(len(contact[i])):
+                if contact[i, j]:
+                    cntc_pts += 1.0
+                    ref_pos += cntc_sens_loc[i, j, :] 
+
+        return ref_pos / cntc_pts   
+
+    def update_tactile_info_sw(self, contact):
+        self.tactile_info_sw = np.roll(self.tactile_info_sw, shift=-1, axis=0)
+        self.tactile_info_sw[-1] = contact
+
+        return np.mean(1.0 * self.tactile_info_sw, axis=0)
+
+    def control(self, x, v, contact):
+
+        if self.state == State.SEARCHING:
+            ctrl = self.searching_position_control(x, v, contact)
+            self.reference_pos = ctrl["p_des"]  
+            if contact.any():
+                self.target_pos_estimate = self.get_new_ref_pos(x, contact) - np.array([0, 0, 0.1])
+                self.reference_pos -= np.array([0.0, 0.0, 0.15])
+                self.state = State.TOUCHED
+                print("STATE CHANGE: SEARCHING -> TOUCHED")
+        elif self.state == State.TOUCHED:
+            ctrl = self.position_align_control(x, v, contact, self.reference_pos)
+            if np.linalg.norm(x[:3] - self.reference_pos) < 0.05:
+                self.state = State.APPROACH
+                self.reference_pos = self.target_pos_estimate - np.array([0, 0, 0.1])
+                print("STATE CHANGE: TOUCHED -> APPROACH")
+        elif self.state == State.APPROACH:
+            ctrl = self.position_align_control(x, v, contact, self.reference_pos)
+            if np.linalg.norm(x[:3] - self.reference_pos) < 0.05:
+                self.state = State.POSITION
+                self.reference_pos = self.target_pos_estimate
+                print("STATE CHANGE: APPROACH -> POSITION")
+        elif self.state == State.POSITION:
+            ctrl = self.position_align_control(x, v, contact)
+            self.reference_pos = ctrl["p_des"]
+            if np.linalg.norm(x[:3] - self.target_pos_estimate) < 0.1:
+                self.state = State.ROTATION
+                print("STATE CHANGE: POSITION -> ROTATION")
+            # Check for ABORT condition
+            if np.linalg.norm(x[:3] - self.reference_pos) > 1.5:
+                self.target_pos_estimate += np.array([0, 0, -0.25])
+                self.state = State.ABORT
+                print("STATE CHANGE: POSITION -> ABORT")
+        elif self.state == State.ROTATION:
+            ctrl = self.rotation_align_control(x, v, contact)
+            mean = self.update_tactile_info_sw(contact)
+            # If each arm has at leat one pad that has had
+            # consistent contact ....
+            if np.any(mean > 0.9, axis=1).all():
+                self.state = State.FINALIZE
+                print("STATE CHANGE: ROTATION -> FINALIZE")
+            # Check for ABORT condition
+            if np.linalg.norm(x[:3] - self.reference_pos) > 1.5:
+                self.target_pos_estimate += np.array([0, 0, -0.25])
+                self.state = State.ABORT
+                print("STATE CHANGE: ROTATION -> ABORT")
+        elif self.state == State.FINALIZE:
+            ctrl = self.finalize_grasp_control(x, v, contact)
+            mean = self.update_tactile_info_sw(contact)
+            # If on each arm any of the firsst pads
+            #  have had consitent contact ...
+            if (np.any(mean[:, :2] > 0.95, axis=1).all()
+                # ... and all of the tendon tensions have equalized
+                or np.allclose(self.alpha, max(self.alpha), atol=1)
+                ):
+                self.state = State.PERCH
+                print("STATE CHANGE: FINALIZE -> PERCH")
+            # Check for ABORT condition
+            if np.linalg.norm(x[:3] - self.reference_pos) > 1.5:
+                self.target_pos_estimate += np.array([0, 0, -0.25])
+                self.state = State.ABORT
+                print("STATE CHANGE: FINALIZE -> ABORT")
+        elif self.state == State.PERCH:
+            ctrl = self.perch_control(x, v, contact)
+            mean = self.update_tactile_info_sw(contact)
+        elif self.state == State.ABORT:
+            ctrl = self.abort_control(x, v, contact)
+            if np.linalg.norm(x[:3] - self.target_pos_estimate) < 0.05:
+                self.state = State.SEARCHING
+                print("STATE CHANGE: ABORT -> SEARCHING")
+        else:
+            ctrl = self.position_align_control(x, v, contact)
+        
+        self.contact_locs = self.get_contact_sensor_location(x[:4])
+
+        return ctrl
