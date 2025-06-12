@@ -23,14 +23,14 @@ class PX4InterfaceNode(Node):
         )
         self._vehicle_odometry_publisher = self.create_publisher(
             PoseStamped,
-            '/feely_drone/pose',
+            '/feely_drone/out/pose',
             qos_profile_sensor_data
         )
 
         # Subscribers
         self._ref_pose_subscriber = self.create_subscription(
             PoseStamped,
-            '/feely_drone/ref_pose',
+            '/feely_drone/in/ref_pose',
             self.ref_pose_callback,
             qos_profile_sensor_data
         )
@@ -42,7 +42,7 @@ class PX4InterfaceNode(Node):
         )
         self._sm_state_subscriber = self.create_subscription(
             StateMachineState,
-            '/feely_drone/state_machine_state',
+            '/feely_drone/out/state_machine_state',
             self.sm_state_callback,
             qos_profile_sensor_data
         )
