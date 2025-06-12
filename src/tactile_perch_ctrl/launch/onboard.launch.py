@@ -14,4 +14,9 @@ def generate_launch_description():
             executable='feely_drone_state_machine',
             name='feely_drone_state_machine',
         ),
+        Node(
+            package='px4_interface',
+            executable='px4_interface_node',
+            name='px4_interface_node',
+        ),
     ])
