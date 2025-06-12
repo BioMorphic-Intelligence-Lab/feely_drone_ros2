@@ -36,7 +36,10 @@ WORKDIR /home/user/ros
 ADD ./src ./ws/src
 
 WORKDIR /home/user/ros/ws
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build --packages-select custom_msgs
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build --packages-select px4_msgs
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build --packages-select px4_interface
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build --packages-select tactile_perch_ctrl
 
 # Add the entrypoint script
 ADD ./docker/entrypoint.sh /entrypoint.sh
