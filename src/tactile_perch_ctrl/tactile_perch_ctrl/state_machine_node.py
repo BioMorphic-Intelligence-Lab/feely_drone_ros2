@@ -140,7 +140,8 @@ class StateMachineNode(Node):
         binTouchStateMsg.header.stamp = timestamp_now
         
         # Compute the current touch state and publish for debugging purposes
-        self._bin_touch_state = np.mean(self.touch_data_deque - self.touch_data_baseline_deque, axis=0) > self.TOUCH_THRESHOLD
+        self._bin_touch_state = np.mean(np.array(self.touch_data_deque)
+                                      - np.array(self.touch_data_baseline_deque), axis=0) > self.TOUCH_THRESHOLD
         binTouchStateMsg.position = self._bin_touch_state.astype(float)
         self._bin_touch_data_publisher.publish(binTouchStateMsg)
         
