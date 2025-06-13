@@ -28,8 +28,8 @@ class StateMachineNode(Node):
         self.TOUCH_THRESHOLD = self.get_parameter("touch_threshold").get_parameter_value().integer_value
 
         # Init queue for touch data
-        self.touch_data_deque = deque(np.zeros([self.touch_window_size, 12]))
-        self.touch_data_baseline_deque = deque(np.zeros([self.touch_window_size, 12]))
+        self.touch_data_deque = deque(np.zeros([12]), maxlen=self.touch_window_size)
+        self.touch_data_baseline_deque = deque(np.zeros([12]), maxlen=self.touch_window_size)
        
         # Publishers
         self._ref_pos_publisher = self.create_publisher(PoseStamped, '/feely_drone/in/ref_pose', qos_profile_sensor_data)
