@@ -11,6 +11,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from custom_msgs.msg import TouchData, StateMachineState
 
 from .state_machine import StateMachine
+from .search_pattern import SinusoidalSearchPattern
 
 class StateMachineNode(Node):
 
@@ -65,7 +66,14 @@ class StateMachineNode(Node):
                                q0=np.deg2rad(75) * np.ones(3),     # Neutral joint states
                                g=np.array([0, 0, -9.81]),          # Gravity Vector
                                target_pos_estimate=np.array([0, 0, 1.5]),
-                               target_yaw_estimate=np.zeros([1]))
+                               target_yaw_estimate=np.zeros([1]),
+                               searching_pattern=SinusoidalSearchPattern(
+                                    params=np.stack([[0.75, 0.75, 0],   # Amplitude
+                                                     [2.0, 1.0, 0.0],   # Frequency
+                                                     [0.0, 0.0, 0.0],   # Phase Shift
+                                                     [0.0, 0.0, 1.5]]), # Offset
+                                    dt=1.0 / self.frequency)
+        )
         
         # Init the binary touch state
         self._bin_touch_state = np.zeros(9, dtype=bool)
@@ -136,9 +144,9 @@ class StateMachineNode(Node):
         self._bin_touch_data_publisher.publish(binTouchStateMsg)
         
         # Compute reference pose and arm opening angle
-        control = self.sm.control(x=np.zeros(4),
+        control = self.sm.control(x=np.concatenate((self._position, [self._yaw])),
                                   v=np.zeros(4),
-                                  contact=np.zeros(9, dtype=bool))
+                                  contact=self._bin_touch_state)
         
         # Extract Desired Position
         pose.pose.position.x = control['p_des'][0]
@@ -162,10 +170,12 @@ class StateMachineNode(Node):
         self.sm.update_tactile_info_sw()
 
     def odometry_data_callback(self, msg: PoseStamped):
-        self._position = msg.pose.position
-        self._yaw = np.atan2(
-            2.0 * (msg.pose.orientation.w *msg.pose.orientation.z + msg.pose.orientation.x * msg.pose.orientation.y),
-            msg.pose.orientation.w**2 + msg.pose.orientation.x**2 - msg.pose.orientation.y**2 - msg.pose.orientation.z**2
+        self._position = np.array([msg.pose.position.x,
+                                  msg.pose.position.y,
+                                  msg.pose.position.z], dtype=float)
+        self._yaw = np.arctan2(
+            2.0 * (msg.pose.orientation.w * msg.pose.orientation.z + msg.pose.orientation.x * msg.pose.orientation.y),
+                   msg.pose.orientation.w**2 + msg.pose.orientation.x**2 - msg.pose.orientation.y**2 - msg.pose.orientation.z**2
         )
 
 def main(args=None):
