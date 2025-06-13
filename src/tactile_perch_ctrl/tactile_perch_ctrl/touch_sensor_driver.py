@@ -16,7 +16,7 @@ class TouchSensorDriver(Node):
 
     def __init__(self):
         super().__init__('mpr121_publisher')
-        self._touch_data_publisher = self.create_publisher(TouchData, '/feely_drone/touch_data', qos.QoSPresetProfiles.SENSOR_DATA.value)
+        self._touch_data_publisher = self.create_publisher(TouchData, '/feely_drone/out/touch_data', qos.QoSPresetProfiles.SENSOR_DATA.value)
 
         # Get parameters
         self.declare_parameter("frequency", 250.0)

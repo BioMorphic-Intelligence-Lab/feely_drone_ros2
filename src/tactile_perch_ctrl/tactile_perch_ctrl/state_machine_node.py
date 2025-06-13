@@ -29,6 +29,7 @@ class StateMachineNode(Node):
 
         # Init queue for touch data
         self.touch_data_deque = deque(np.zeros([self.touch_window_size, 12]))
+        self.touch_data_baseline_deque = deque(np.zeros([self.touch_window_size, 12]))
        
         # Publishers
         self._ref_pos_publisher = self.create_publisher(PoseStamped, '/feely_drone/in/ref_pose', qos_profile_sensor_data)
@@ -139,7 +140,7 @@ class StateMachineNode(Node):
         binTouchStateMsg.header.stamp = timestamp_now
         
         # Compute the current touch state and publish for debugging purposes
-        self._bin_touch_state = np.mean(self.touch_data_deque, axis=0) > self.TOUCH_THRESHOLD
+        self._bin_touch_state = np.mean(self.touch_data_deque - self.touch_data_baseline_deque, axis=0) > self.TOUCH_THRESHOLD
         binTouchStateMsg.position = self._bin_touch_state.astype(float)
         self._bin_touch_data_publisher.publish(binTouchStateMsg)
         
@@ -167,7 +168,9 @@ class StateMachineNode(Node):
     def touch_data_callback(self, msg: TouchData):
         self.touch_data_deque.popleft()
         self.touch_data_deque.append(TouchData.raw_data)
-        self.sm.update_tactile_info_sw()
+
+        self.touch_data_baseline_deque.popleft()
+        self.touch_data_baseline_deque.append(TouchData.baseline_data)
 
     def odometry_data_callback(self, msg: PoseStamped):
         self._position = np.array([msg.pose.position.x,
