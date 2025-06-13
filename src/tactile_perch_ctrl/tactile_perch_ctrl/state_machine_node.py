@@ -21,7 +21,7 @@ class StateMachineNode(Node):
         # Declare all parameters
         self.declare_parameter("frequency", 20.0)
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 250Hz, so 10 samples corresponds to 0.025 seconds
-        self.declare_parameter("touch_threshold", 10)
+        self.declare_parameter("touch_threshold", 50)
         # Get all parameters
         self.frequency = self.get_parameter("frequency").get_parameter_value().double_value
         self.touch_window_size = self.get_parameter("touch_window_size").get_parameter_value().integer_value
@@ -138,18 +138,21 @@ class StateMachineNode(Node):
         jointReferenceMsg.header.stamp = timestamp_now
         jointReferenceMsg.name = [f'arm{i+1}' for i in range(3)]
         binTouchStateMsg.header.stamp = timestamp_now
-        
+
         # Compute the current touch state and publish for debugging purposes
-        self._bin_touch_state = np.mean(np.array(self.touch_data_deque)
-                                      - np.array(self.touch_data_baseline_deque), axis=0) > self.TOUCH_THRESHOLD
+        self._bin_touch_state = np.mean(np.abs(
+             np.array(self.touch_data_deque)
+           - np.array(self.touch_data_baseline_deque)
+           ), axis=0) > self.TOUCH_THRESHOLD
         binTouchStateMsg.position = self._bin_touch_state.astype(float)
         self._bin_touch_data_publisher.publish(binTouchStateMsg)
-        
+
         # Compute reference pose and arm opening angle
-        control = self.sm.control(x=np.concatenate((self._position, [self._yaw])),
+        control = self.sm.control(x=np.concatenate((self._position,
+                                                    [self._yaw])),
                                   v=np.zeros(4),
-                                  contact=self._bin_touch_state)
-        
+                                  contact=self._bin_touch_state[:9].reshape([3,3])
+        )
         # Extract Desired Position
         pose.pose.position.x = control['p_des'][0]
         pose.pose.position.y = control['p_des'][1]
