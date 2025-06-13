@@ -168,10 +168,10 @@ class StateMachineNode(Node):
 
     def touch_data_callback(self, msg: TouchData):
         self.touch_data_deque.popleft()
-        self.touch_data_deque.append(TouchData.raw_data)
+        self.touch_data_deque.append(np.array(TouchData.raw_data, dtype=float))
 
         self.touch_data_baseline_deque.popleft()
-        self.touch_data_baseline_deque.append(TouchData.baseline_data)
+        self.touch_data_baseline_deque.append(np.array(TouchData.baseline_data, dtype=float))
 
     def odometry_data_callback(self, msg: PoseStamped):
         self._position = np.array([msg.pose.position.x,
