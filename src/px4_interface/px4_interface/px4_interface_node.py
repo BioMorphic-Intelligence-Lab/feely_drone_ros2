@@ -4,7 +4,8 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from geometry_msgs.msg import PoseStamped
 from custom_msgs.msg import StateMachineState
-from px4_msgs.msg import TrajectorySetpoint, VehicleOdometry, VehicleCommand
+from px4_msgs.msg import (TrajectorySetpoint, VehicleOdometry,
+                          VehicleCommand, OffboardControlMode)
 
 class PX4InterfaceNode(Node):
     def __init__(self):
@@ -24,6 +25,11 @@ class PX4InterfaceNode(Node):
         self._vehicle_odometry_publisher = self.create_publisher(
             PoseStamped,
             '/feely_drone/out/pose',
+            qos_profile_sensor_data
+        )
+        self._offboard_control_mode_publisher = self.create_publisher(
+            OffboardControlMode,
+            '/fmu/in/offboard_control_mode',
             qos_profile_sensor_data
         )
 
@@ -47,6 +53,21 @@ class PX4InterfaceNode(Node):
             qos_profile_sensor_data
         )
 
+        # Initialize Offboard Control Mode Timer
+        self._timer = self.create_timer(0.1, self._publish_offboard_control_mode)
+
+    def _publish_offboard_control_mode(self):
+        # Create and publish Offboard Control Mode message
+        offboard_control_mode = OffboardControlMode()
+        offboard_control_mode.timestamp = int(self.get_clock().now().nanoseconds * 1e-3)
+        offboard_control_mode.position = True
+        offboard_control_mode.velocity = False
+        offboard_control_mode.acceleration = False
+        offboard_control_mode.attitude = False
+        offboard_control_mode.body_rate = False
+
+        self._offboard_control_mode_publisher.publish(offboard_control_mode)
+
     def ref_pose_callback(self, msg):
         # Handle incoming reference pose messages
         trajectory_setpoint = TrajectorySetpoint()
@@ -68,18 +89,18 @@ class PX4InterfaceNode(Node):
     def pose_callback(self, msg):
         # Hande vehicle odometry msgs
         pose_msg = PoseStamped()
-        pose_msg.header.frameid = "world"
+        pose_msg.header.frame_id = "world"
         pose_msg.header.stamp = self.get_clock().now().to_msg()
 
         # Transform from NED to ENU
-        pose_msg.pose.position.x =   msg.position[1]
-        pose_msg.pose.position.y =   msg.position[0]
-        pose_msg.pose.position.z = - msg.position[2]
+        pose_msg.pose.position.x =   float(msg.position[1])
+        pose_msg.pose.position.y =   float(msg.position[0])
+        pose_msg.pose.position.z = - float(msg.position[2])
 
-        pose_msg.pose.orientation.w =  msg.q[0]
-        pose_msg.pose.orientation.x =  msg.q[2]
-        pose_msg.pose.orientation.y =  msg.q[1]
-        pose_msg.pose.orientation.z = -msg.q[3]
+        pose_msg.pose.orientation.w =  float(msg.q[0])
+        pose_msg.pose.orientation.x =  float(msg.q[2])
+        pose_msg.pose.orientation.y =  float(msg.q[1])
+        pose_msg.pose.orientation.z = -float(msg.q[3])
     
         # Publish message
         self._vehicle_odometry_publisher.publish(pose_msg)
