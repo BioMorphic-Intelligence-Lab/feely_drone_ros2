@@ -113,6 +113,7 @@ class StateMachine(object):
         # Return control actions
         return {'alpha': self.alpha,
                 'p_des': p_des,
+                'v_des': v_des,
                 'yaw_des': yaw_des}
 
     def position_align_control(self, x, v, contact, p_des=None):
@@ -122,10 +123,11 @@ class StateMachine(object):
             p_des = self.target_pos_estimate
         yaw_des = self.target_yaw_estimate
 
-        
+        v_des = np.zeros(3)        
         
         return {'alpha': self.alpha,
                 'p_des': p_des,
+                'v_des': v_des,
                 'yaw_des': yaw_des}
     
     def abort_control(self, x, v, contact):
@@ -135,10 +137,11 @@ class StateMachine(object):
         yaw_des = self.target_yaw_estimate
         
         self.alpha = np.ones(3)
-        
+        v_des = np.zeros(3)
         
         return {'alpha': self.alpha,
                 'p_des': p_des,
+                'v_des': v_des,
                 'yaw_des': yaw_des}
 
     def position_fine_alignment(self, contact, del_p=0.01):
@@ -177,9 +180,11 @@ class StateMachine(object):
         self.alpha[indeces] += dalpha[indeces]
         self.alpha = np.clip(self.alpha, a_min=0.0, a_max=1.0)
         
+        v_des = np.zeros(3)
 
         return {'alpha': self.alpha,
                 'p_des': p_des,
+                'v_des': v_des,
                 'yaw_des': yaw_des}
 
     def finalize_grasp_control(self, x, v, contact):
@@ -188,9 +193,11 @@ class StateMachine(object):
         yaw_des = self.target_yaw_estimate
 
         self.alpha = np.ones(3) * np.min(self.alpha)
+        v_des = np.zeros(3)
         
         return {'alpha': self.alpha,
                 'p_des': p_des,
+                'v_des': v_des,
                 'yaw_des': yaw_des}
     
     def perch_control(self, x, v, contact):
@@ -201,10 +208,12 @@ class StateMachine(object):
         yaw_des = self.target_yaw_estimate
 
         self.alpha = np.ones(3) * np.min(self.alpha)
+        v_des = np.zeros(3)
         
         
         return {'alpha': self.alpha,
                 'p_des': p_des,
+                'v_des': v_des,
                 'yaw_des': yaw_des}
     
     def compute_gravity_tau(self, q):

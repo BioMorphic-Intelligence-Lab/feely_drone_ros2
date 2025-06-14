@@ -2,7 +2,7 @@ import rclpy
 import numpy as np
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, TwistStamped
 from custom_msgs.msg import StateMachineState
 from px4_msgs.msg import (TrajectorySetpoint, VehicleOdometry,
                           VehicleCommand, OffboardControlMode)
@@ -40,6 +40,12 @@ class PX4InterfaceNode(Node):
             self.ref_pose_callback,
             qos_profile_sensor_data
         )
+        self._ref_twist_subscriber = self.create_subscription(
+            TwistStamped,
+            '/feely_drone/in/ref_twist',
+            self.ref_twist_callback,
+            qos_profile_sensor_data
+        )
         self._odometry_subscriber = self.create_subscription(
             VehicleOdometry,
             '/fmu/out/vehicle_odometry',
@@ -55,36 +61,43 @@ class PX4InterfaceNode(Node):
 
         # Initialize Offboard Control Mode Timer
         self._timer = self.create_timer(0.1, self._publish_offboard_control_mode)
+        self._ref_pub_timer = self.create_timer(1.0 / 100.0, self._publish_reference)
+
+        # Init ref message
+        self._ref_msg = TrajectorySetpoint()
+
+    def _publish_reference(self):
+        self._ref_msg.timestamp = int(self.get_clock().now().nanoseconds * 1e-3)
+        self._trajectory_setpoint_publisher.publish(self._ref_msg)
 
     def _publish_offboard_control_mode(self):
         # Create and publish Offboard Control Mode message
         offboard_control_mode = OffboardControlMode()
         offboard_control_mode.timestamp = int(self.get_clock().now().nanoseconds * 1e-3)
         offboard_control_mode.position = True
-        offboard_control_mode.velocity = False
+        offboard_control_mode.velocity = True
         offboard_control_mode.acceleration = False
         offboard_control_mode.attitude = False
         offboard_control_mode.body_rate = False
 
         self._offboard_control_mode_publisher.publish(offboard_control_mode)
 
+    def ref_twist_callback(self, msg):
+        # Transform from ENU to NED 
+        self._ref_msg.velocity[0] =  msg.twist.linear.y
+        self._ref_msg.velocity[1] =  msg.twist.linear.x
+        self._ref_msg.velocity[2] = -msg.twist.linear.z
+    
     def ref_pose_callback(self, msg):
-        # Handle incoming reference pose messages
-        trajectory_setpoint = TrajectorySetpoint()
-        # Timestamp the trajectory setpoint
-        trajectory_setpoint.timestamp = int(self.get_clock().now().nanoseconds * 1e-3)
 
         # Transform from ENU to NED 
-        trajectory_setpoint.position[0] =  msg.pose.position.y
-        trajectory_setpoint.position[1] =  msg.pose.position.x
-        trajectory_setpoint.position[2] = -msg.pose.position.z
+        self._ref_msg.position[0] =  msg.pose.position.y
+        self._ref_msg.position[1] =  msg.pose.position.x
+        self._ref_msg.position[2] = -msg.pose.position.z
 
         # Extract yaw from quaternion
         yaw = np.arctan2(msg.pose.orientation.z, msg.pose.orientation.w)
-        trajectory_setpoint.yaw = - yaw
-
-        # Publish Message
-        self._trajectory_setpoint_publisher.publish(trajectory_setpoint)
+        self._ref_msg.yaw = - yaw
 
     def pose_callback(self, msg):
         # Hande vehicle odometry msgs

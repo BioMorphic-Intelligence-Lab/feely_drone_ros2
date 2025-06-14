@@ -5,7 +5,7 @@ from collections import deque
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data, qos_profile_default
 
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, TwistStamped
 from sensor_msgs.msg import JointState
 from visualization_msgs.msg import Marker, MarkerArray
 from custom_msgs.msg import TouchData, StateMachineState
@@ -33,6 +33,7 @@ class StateMachineNode(Node):
 
         # Publishers
         self._ref_pos_publisher = self.create_publisher(PoseStamped, '/feely_drone/in/ref_pose', qos_profile_sensor_data)
+        self._ref_twist_publisher = self.create_publisher(TwistStamped, '/feely_drone/in/ref_twist', qos_profile_sensor_data)
         self._ref_joint_state_publisher = self.create_publisher(JointState, '/feely_drone/in/ref_joint_state', qos_profile_sensor_data)
         self._bin_touch_data_publisher = self.create_publisher(JointState, '/feely_drone/out/bin_touch_state', qos_profile_sensor_data)
         self._sm_State_publisher = self.create_publisher(StateMachineState, '/feely_drone/out/state_machine_state', qos_profile_sensor_data)
@@ -73,7 +74,8 @@ class StateMachineNode(Node):
                                                      [2.0, 1.0, 0.0],   # Frequency
                                                      [0.0, 0.0, 0.0],   # Phase Shift
                                                      [0.0, 0.0, 1.5]]), # Offset
-                                    dt=1.0 / self.frequency)
+                                    dt=1.0 / self.frequency,
+                                    vel_norm=0.15)
         )
         
         # Init the binary touch state
@@ -85,7 +87,7 @@ class StateMachineNode(Node):
 
     def timer_callback(self):
         # Get the reference pose and joint state messages
-        pose_msg, joint_state_msg = self.get_references()
+        pose_msg, twist_msg, joint_state_msg = self.get_references()
 
         # Get the current state of the state machine
         sm_state_msg = StateMachineState()
@@ -94,6 +96,7 @@ class StateMachineNode(Node):
         
         # Publish the reference pose and joint state messages
         self._ref_pos_publisher.publish(pose_msg)
+        self._ref_twist_publisher.publish(twist_msg)
         self._ref_joint_state_publisher.publish(joint_state_msg)
         self._sm_State_publisher.publish(sm_state_msg)
 
@@ -129,12 +132,15 @@ class StateMachineNode(Node):
 
         # Init publish messages
         pose = PoseStamped()
+        twist = TwistStamped()
         jointReferenceMsg = JointState()
         binTouchStateMsg = JointState()
 
         # Set timestamps and frame ids
         pose.header.stamp = timestamp_now
         pose.header.frame_id = 'world'
+        twist.header.stamp = timestamp_now
+        twist.header.frame_id = 'world'
         jointReferenceMsg.header.stamp = timestamp_now
         jointReferenceMsg.name = [f'arm{i+1}' for i in range(3)]
         binTouchStateMsg.header.stamp = timestamp_now
@@ -163,11 +169,16 @@ class StateMachineNode(Node):
         pose.pose.orientation.x = 0.0
         pose.pose.orientation.y = 0.0
         pose.pose.orientation.z = np.sin(control['yaw_des'][0] / 2.0)
-
+        
+        # Extract Desired Velocity
+        twist.twist.linear.x = control['v_des'][0]
+        twist.twist.linear.y = control['v_des'][1]
+        twist.twist.linear.z = control['v_des'][2]
+        
         # Extract Desired Arm Opening Angle
         jointReferenceMsg.position = control['alpha']
 
-        return pose, jointReferenceMsg
+        return pose, twist, jointReferenceMsg
 
     def touch_data_callback(self, msg: TouchData):
         self.touch_data_deque.popleft()
