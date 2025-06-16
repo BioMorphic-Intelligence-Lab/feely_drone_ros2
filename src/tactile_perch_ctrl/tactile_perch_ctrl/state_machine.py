@@ -86,11 +86,19 @@ class StateMachine(object):
 
     def get_des_yaw_vel(self, contacts, rot_vel=1.0):
         rows = np.sum(np.array([1.0, 3.0, 2.0]) * contacts, axis=1)
-        if rows[0] == rows[2]:
+        #if rows[0] == rows[2]:
+        #    return 0.0
+        #elif rows[0] > rows[2]:
+        #    return -rot_vel
+        #elif rows[2] > rows[0]:
+        #    return rot_vel
+        #else:
+        #    return 0.0
+        if rows[2] == rows[1]:
             return 0.0
-        elif rows[0] > rows[2]:
+        elif rows[2] > rows[1]:
             return -rot_vel
-        elif rows[2] > rows[0]:
+        elif rows[1] > rows[2]:
             return rot_vel
         else:
             return 0.0

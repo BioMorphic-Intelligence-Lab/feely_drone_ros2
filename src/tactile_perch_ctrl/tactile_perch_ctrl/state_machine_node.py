@@ -163,8 +163,8 @@ class StateMachineNode(Node):
         self._bin_touch_data_publisher.publish(binTouchStateMsg)
 
         touchData = np.vstack([
-            self._bin_touch_state[6:9],  # Arm 1
-            self._bin_touch_state[0:3],  # Arm 2
+            self._bin_touch_state[0:3],  # Arm 1
+            self._bin_touch_state[6:9],  # Arm 2
             self._bin_touch_state[3:6]   # Arm 3
         ])
 
