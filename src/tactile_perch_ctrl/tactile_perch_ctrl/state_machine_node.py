@@ -47,13 +47,21 @@ class StateMachineNode(Node):
         self.timer = self.create_timer(1.0 / self.frequency, self.timer_callback)
 
         # Init static offsets for the arms
-        p0 = np.array([[-0.125, 0.125, 0.0],
-                       [ 0.0,  -0.125, 0.0],
-                       [ 0.125, 0.125, 0.0]])
+        #p0 = np.array([[-0.125, 0.125, 0.0],
+        #               [ 0.0,  -0.125, 0.0],
+        #               [ 0.125, 0.125, 0.0]])
+        #rot0 = np.array([
+        #    R.from_euler('xyz', [-np.deg2rad(90), 0.0, 0.0]).as_matrix(),
+        #    R.from_euler('xyz', [-np.deg2rad(90), 0.0, -np.deg2rad(180)]).as_matrix(),
+        #    R.from_euler('xyz', [-np.deg2rad(90), 0.0, 0.0]).as_matrix(),
+        #]).reshape(3, 3, 3)  
+        p0 = np.array([[ 0.125, 0.125, 0.0],
+                       [-0.125, 0.125, 0.0],
+                       [ 0.0,  -0.125, 0.0],])
         rot0 = np.array([
             R.from_euler('xyz', [-np.deg2rad(90), 0.0, 0.0]).as_matrix(),
-            R.from_euler('xyz', [-np.deg2rad(90), 0.0, -np.deg2rad(180)]).as_matrix(),
             R.from_euler('xyz', [-np.deg2rad(90), 0.0, 0.0]).as_matrix(),
+            R.from_euler('xyz', [-np.deg2rad(90), 0.0, -np.deg2rad(180)]).as_matrix(),
         ]).reshape(3, 3, 3)  
 
 
