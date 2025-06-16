@@ -86,7 +86,7 @@ class WavyBoyNode(Node):
         self.bin_touch_data = (np.mean(np.abs(
              np.array(self.touch_data_deque)
            - np.array(self.touch_data_baseline_deque)
-           ), axis=0) > self.TOUCH_THRESHOLD)[:9].reshape([3, 3]).transpose()
+           ), axis=0) > self.TOUCH_THRESHOLD)[:9].reshape([3, 3])
 
 
 def main(args=None):
