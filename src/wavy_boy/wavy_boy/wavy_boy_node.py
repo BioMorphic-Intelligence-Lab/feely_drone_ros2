@@ -64,7 +64,9 @@ class WavyBoyNode(Node):
         joint_state_msg.header.stamp = self.get_clock().now().to_msg()
         #joint_state_msg.name = ['joint_1', 'joint_2', 'joint_3']
 
-        nocontact = ~self.bin_touch_data.any(axis=0)
+        nocontact = [~self.bin_touch_data[:, 0].any(),
+                     ~self.bin_touch_data[:, 0].any(),
+                     ~self.bin_touch_data[:, 0].any()]
         
         self._alpha = np.clip(
             self._alpha + self.ALPHA_RATE * (nocontact.astype(float)) 
