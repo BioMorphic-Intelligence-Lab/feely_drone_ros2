@@ -118,9 +118,9 @@ class StateMachineNode(Node):
                 marker.scale.y = 0.05
                 marker.scale.z = 0.05
                 marker.color.a = 1.0
-                marker.color.r = 1.0 if self._bin_touch_state[i] else 0.0
+                marker.color.r = 1.0 if self._bin_touch_state[i*3 + j] else 0.0
                 marker.color.g = 0.0
-                marker.color.b = 1.0 if not self._bin_touch_state[i] else 0.0
+                marker.color.b = 1.0 if not self._bin_touch_state[i*3 + j] else 0.0
                 marker.lifetime = rclpy.duration.Duration(seconds=1.0 / self.frequency).to_msg()
                 
                 marker_array.markers.append(marker)
