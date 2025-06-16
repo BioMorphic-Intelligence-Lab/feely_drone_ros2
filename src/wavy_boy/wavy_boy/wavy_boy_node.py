@@ -62,7 +62,7 @@ class WavyBoyNode(Node):
         # Create a JointState message
         joint_state_msg = JointState()
         joint_state_msg.header.stamp = self.get_clock().now().to_msg()
-        joint_state_msg.name = ['joint_1', 'joint_2', 'joint_3']
+        #joint_state_msg.name = ['joint_1', 'joint_2', 'joint_3']
 
         nocontact = ~self.bin_touch_data.any(axis=1)
         
