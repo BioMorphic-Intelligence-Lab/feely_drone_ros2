@@ -6,7 +6,7 @@ from sensor_msgs.msg import JointState
 from visualization_msgs.msg import Marker, MarkerArray
 from custom_msgs.msg import TouchData
 
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import qos_profile_sensor_data, qos_profile_default
 
 
 class WavyBoyNode(Node):
@@ -33,7 +33,8 @@ class WavyBoyNode(Node):
         # Publishers
         self._arm_state_publisher = self.create_publisher(
             JointState,
-            '/feely_drone/in/servo_states'
+            '/feely_drone/in/servo_states',
+            qos_profile_default
         )
         self._contact_marker_publisher = self.create_publisher(
             MarkerArray,
