@@ -14,7 +14,7 @@ class WavyBoyNode(Node):
         super().__init__('wavyboy_node')
 
         # Declare all parameters
-        self.declare_parameter("frequency", 10.0)
+        self.declare_parameter("frequency", 25.0)
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 250Hz, so 10 samples corresponds to 0.025 seconds
         self.declare_parameter("touch_threshold", 50)
         self.declare_parameter("alpha_rate", 0.5)  # Rate at which the alpha value is updated
@@ -86,7 +86,7 @@ class WavyBoyNode(Node):
         self.bin_touch_data = (np.mean(np.abs(
              np.array(self.touch_data_deque)
            - np.array(self.touch_data_baseline_deque)
-           ), axis=0) > self.TOUCH_THRESHOLD)[:9].reshape([3, 3])
+           ), axis=0) > self.TOUCH_THRESHOLD)[:9].reshape([3, 3]).transpose()
 
 
 def main(args=None):
