@@ -33,8 +33,7 @@ class WavyBoyNode(Node):
         # Publishers
         self._arm_state_publisher = self.create_publisher(
             JointState,
-            '/feely_drone/in/servo_states',
-            qos_profile_sensor_data
+            '/feely_drone/in/servo_states'
         )
         self._contact_marker_publisher = self.create_publisher(
             MarkerArray,
