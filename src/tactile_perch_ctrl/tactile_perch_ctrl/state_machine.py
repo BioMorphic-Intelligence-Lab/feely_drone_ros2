@@ -23,7 +23,7 @@ class StateMachine(object):
                  searching_pattern=None,
                  target_pos_estimate=np.array([0, 0, 0.5]),
                  target_yaw_estimate=np.zeros(1),
-                 alpha_rate=1.0/5.0):
+                 alpha_rate=1.0/10.0):
 
         if searching_pattern is None:
             self.searching_pattern = (CompositeSearchPattern([
@@ -84,7 +84,7 @@ class StateMachine(object):
         self.tau_min=-1
 
 
-    def get_des_yaw_vel(self, contacts, rot_vel=1.0):
+    def get_des_yaw_vel(self, contacts, rot_vel=0.2):
         rows = np.sum(np.array([1.0, 3.0, 2.0]) * contacts, axis=1)
         #if rows[0] == rows[2]:
         #    return 0.0
