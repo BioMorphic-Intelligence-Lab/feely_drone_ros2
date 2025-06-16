@@ -146,11 +146,10 @@ class StateMachineNode(Node):
         binTouchStateMsg.header.stamp = timestamp_now
 
         # Compute the current touch state and publish for debugging purposes
-        self._bin_touch_state =(np.mean(np.abs(
+        self._bin_touch_state = np.mean(np.abs(
              np.array(self.touch_data_deque)
            - np.array(self.touch_data_baseline_deque)
-           ), axis=0) > self.TOUCH_THRESHOLD)[:9].reshape([3, 3]).transpose()
-
+           ), axis=0) > self.TOUCH_THRESHOLD
         binTouchStateMsg.position = self._bin_touch_state.astype(float)
         self._bin_touch_data_publisher.publish(binTouchStateMsg)
 
@@ -158,7 +157,7 @@ class StateMachineNode(Node):
         control = self.sm.control(x=np.concatenate((self._position,
                                                     [self._yaw])),
                                   v=np.zeros(4),
-                                  contact=self._bin_touch_state[:9].reshape([3,3])
+                                  contact=self._bin_touch_state[:9].reshape([3,3]).transpose()
         )
         # Extract Desired Position
         pose.pose.position.x = control['p_des'][0]
