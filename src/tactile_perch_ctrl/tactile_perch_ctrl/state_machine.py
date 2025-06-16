@@ -94,11 +94,11 @@ class StateMachine(object):
         #    return rot_vel
         #else:
         #    return 0.0
-        if rows[2] == rows[1]:
+        if rows[1] == rows[0]:
             return 0.0
-        elif rows[2] > rows[1]:
+        elif rows[1] > rows[0]:
             return -rot_vel
-        elif rows[1] > rows[2]:
+        elif rows[0] > rows[1]:
             return rot_vel
         else:
             return 0.0
