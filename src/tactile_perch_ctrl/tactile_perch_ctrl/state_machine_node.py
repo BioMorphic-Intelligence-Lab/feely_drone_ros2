@@ -22,9 +22,11 @@ class StateMachineNode(Node):
         self.declare_parameter("frequency", 20.0)
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 250Hz, so 10 samples corresponds to 0.025 seconds
         self.declare_parameter("touch_threshold", 50)
+        self.declare_parameter("init_target_pos_estimate", [2.0, 0.1, 2.0])
         # Get all parameters
         self.frequency = self.get_parameter("frequency").get_parameter_value().double_value
         self.touch_window_size = self.get_parameter("touch_window_size").get_parameter_value().integer_value
+        init_target_pos_estimate = self.get_parameter("init_target_pos_estimate").get_parameter_value().double_array_value
         self.TOUCH_THRESHOLD = self.get_parameter("touch_threshold").get_parameter_value().integer_value
 
         # Init queue for touch data
@@ -75,7 +77,7 @@ class StateMachineNode(Node):
                                A=-120 * np.ones(3),                # Actuation map
                                q0=np.deg2rad(75) * np.ones(3),     # Neutral joint states
                                g=np.array([0, 0, -9.81]),          # Gravity Vector
-                               target_pos_estimate=np.array([0, 0, 1.5]),
+                               target_pos_estimate=np.array(init_target_pos_estimate),
                                target_yaw_estimate=np.zeros([1]),
                                searching_pattern=SinusoidalSearchPattern(
                                     params=np.stack([[0.75, 0.75, 0],   # Amplitude
