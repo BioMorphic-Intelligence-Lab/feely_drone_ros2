@@ -56,7 +56,7 @@ class WavyBoyNode(Node):
         
         # Init arm state
         self._alpha = 0.5 * np.ones(3, dtype=float)
-        self.start = self.get_clock().now().nanoseconds * 1e-9
+        self._k = np.zeros(3, dtype=int)
 
     def _publish_arm_ref(self):
         # Create a JointState message
@@ -68,12 +68,8 @@ class WavyBoyNode(Node):
                     [~self.bin_touch_data[:, 2].any(),
                      ~self.bin_touch_data[:, 0].any(),
                      ~self.bin_touch_data[:, 1].any()])
-        
-        self._alpha = np.clip(
-            self._alpha + self.ALPHA_RATE * (nocontact.astype(float)) 
-                * self.DT * np.cos(self.ALPHA_RATE * (self.get_clock().now().nanoseconds * 1e-9 - self.start)),
-            0.0, 1.0
-        )
+        self._k += nocontact.astype(int)        
+        self._alpha = np.sin(self.ALPHA_RATE * self._k * self.DT)
         joint_state_msg.position = self._alpha.tolist()
 
         # Publish the JointState message
