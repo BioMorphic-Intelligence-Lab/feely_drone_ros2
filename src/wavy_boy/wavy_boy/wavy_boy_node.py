@@ -14,7 +14,7 @@ class WavyBoyNode(Node):
         super().__init__('wavyboy_node')
 
         # Declare all parameters
-        self.declare_parameter("frequency", 50.0)
+        self.declare_parameter("frequency", 100.0)
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 250Hz, so 10 samples corresponds to 0.025 seconds
         self.declare_parameter("touch_threshold", 50)
         self.declare_parameter("alpha_rate", 0.5)  # Rate at which the alpha value is updated
@@ -64,7 +64,7 @@ class WavyBoyNode(Node):
         joint_state_msg.header.stamp = self.get_clock().now().to_msg()
         #joint_state_msg.name = ['joint_1', 'joint_2', 'joint_3']
 
-        nocontact = ~self.bin_touch_data.any(axis=0)
+        nocontact = ~self.bin_touch_data.any(axis=1)
         
         self._alpha = np.clip(
             self._alpha + self.ALPHA_RATE * (nocontact.astype(float)) 
