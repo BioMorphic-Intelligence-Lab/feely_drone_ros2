@@ -162,11 +162,17 @@ class StateMachineNode(Node):
         binTouchStateMsg.position = self._bin_touch_state.astype(float)
         self._bin_touch_data_publisher.publish(binTouchStateMsg)
 
+        touchData = np.vstack([
+            self._bin_touch_state[6:9],  # Arm 1
+            self._bin_touch_state[0:3],  # Arm 2
+            self._bin_touch_state[3:6]   # Arm 3
+        ])
+
         # Compute reference pose and arm opening angle
         control = self.sm.control(x=np.concatenate((self._position,
                                                     [self._yaw])),
                                   v=np.zeros(4),
-                                  contact=self._bin_touch_state[:9].reshape([3,3]).transpose()
+                                  contact=touchData
         )
         # Extract Desired Position
         pose.pose.position.x = control['p_des'][0]
