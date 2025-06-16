@@ -111,7 +111,7 @@ class StateMachineNode(Node):
         # Publish the contact marker for visualization
         contact_locs = self.sm.contact_locs
         marker_array = MarkerArray()
-        for i in range(3):
+        for i in [2, 0, 1]:
             for j in range(3):
                 marker = Marker()
                 marker.header.stamp = pose_msg.header.stamp
