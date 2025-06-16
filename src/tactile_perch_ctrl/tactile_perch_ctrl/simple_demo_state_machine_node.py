@@ -87,7 +87,7 @@ class SimpleDemoStateMachineNode(Node):
         if dist < 0.05:
             cmd = np.zeros(3)
         else:
-            cmd = 0.1 * (control['p_des'] - self._position) / dist
+            cmd = 0.2 * (control['p_des'] - self._position) / dist
         pose.pose.position.x = self._position[0] + self.dt * cmd[0]
         pose.pose.position.y = self._position[1] + self.dt * cmd[1]
         pose.pose.position.z = self._position[2] + self.dt * cmd[2]
