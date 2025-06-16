@@ -52,7 +52,7 @@ class WavyBoyNode(Node):
         )
         
         # Initialize Offboard Control Mode Timer
-        self._timer = self.create_timer(0.1, self._publish_arm_ref)
+        self._timer = self.create_timer(self.DT, self._publish_arm_ref)
         
         # Init arm state
         self._alpha = 0.5 * np.ones(3, dtype=float)
