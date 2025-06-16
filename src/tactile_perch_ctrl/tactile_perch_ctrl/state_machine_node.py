@@ -34,7 +34,7 @@ class StateMachineNode(Node):
         # Publishers
         self._ref_pos_publisher = self.create_publisher(PoseStamped, '/feely_drone/in/ref_pose', qos_profile_sensor_data)
         self._ref_twist_publisher = self.create_publisher(TwistStamped, '/feely_drone/in/ref_twist', qos_profile_sensor_data)
-        self._ref_joint_state_publisher = self.create_publisher(JointState, '/feely_drone/in/servo_states', qos_profile_sensor_data)
+        self._ref_joint_state_publisher = self.create_publisher(JointState, '/feely_drone/in/servo_states', qos_profile_default)
         self._bin_touch_data_publisher = self.create_publisher(JointState, '/feely_drone/out/bin_touch_state', qos_profile_sensor_data)
         self._sm_State_publisher = self.create_publisher(StateMachineState, '/feely_drone/out/state_machine_state', qos_profile_sensor_data)
         self._contact_marker_publisher = self.create_publisher(MarkerArray, '/feely_drone/out/contact_marker', qos_profile_sensor_data)
