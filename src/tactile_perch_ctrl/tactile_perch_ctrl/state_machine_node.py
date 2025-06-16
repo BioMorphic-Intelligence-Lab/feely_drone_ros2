@@ -101,7 +101,7 @@ class StateMachineNode(Node):
         sm_state_msg = StateMachineState()
         sm_state_msg.state = self.sm.state.value
         sm_state_msg.header.stamp = pose_msg.header.stamp
-        
+
         # Publish the reference pose and joint state messages
         self._ref_pos_publisher.publish(pose_msg)
         self._ref_twist_publisher.publish(twist_msg)
@@ -111,8 +111,8 @@ class StateMachineNode(Node):
         # Publish the contact marker for visualization
         contact_locs = self.sm.contact_locs
         marker_array = MarkerArray()
+        index = [0, 2, 1]
         for i in range(3):
-            index = (i + 2) % 3  # Use modulo to alternate between two sets of markers
             for j in range(3):
                 marker = Marker()
                 marker.header.stamp = pose_msg.header.stamp
@@ -120,18 +120,18 @@ class StateMachineNode(Node):
                 marker.id = i + j * 3 + 1  # Unique ID for each marker
                 marker.type = Marker.SPHERE
                 marker.action = Marker.ADD
-                marker.pose.position.x = contact_locs[index, j, 0]
-                marker.pose.position.y = contact_locs[index, j, 1]
-                marker.pose.position.z = contact_locs[index, j, 2]
+                marker.pose.position.x = contact_locs[index[i], j, 0]
+                marker.pose.position.y = contact_locs[index[i], j, 1]
+                marker.pose.position.z = contact_locs[index[i], j, 2]
                 marker.scale.x = 0.05
                 marker.scale.y = 0.05
                 marker.scale.z = 0.05
                 marker.color.a = 1.0
-                marker.color.r = 1.0 if self._bin_touch_state[index*3 + j] else 0.0
+                marker.color.r = 1.0 if self._bin_touch_state[i*3 + j] else 0.0
                 marker.color.g = 0.0
-                marker.color.b = 1.0 if not self._bin_touch_state[index*3 + j] else 0.0
+                marker.color.b = 1.0 if not self._bin_touch_state[i*3 + j] else 0.0
                 marker.lifetime = rclpy.duration.Duration(seconds=1.0 / self.frequency).to_msg()
-                
+
                 marker_array.markers.append(marker)
         self._contact_marker_publisher.publish(marker_array)
 
