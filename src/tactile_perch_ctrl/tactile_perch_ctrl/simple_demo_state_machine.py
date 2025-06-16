@@ -10,7 +10,7 @@ class SimpleDemoStateMachine(object):
 
     def __init__(self,
                  dt,
-                 alpha_rate=1.0/5.0):
+                 alpha_rate=1.0/10.0):
 
         self.dt = dt
         self.alpha_rate = alpha_rate
