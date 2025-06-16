@@ -174,6 +174,9 @@ class StateMachineNode(Node):
         twist.twist.linear.x = control['v_des'][0]
         twist.twist.linear.y = control['v_des'][1]
         twist.twist.linear.z = control['v_des'][2]
+        twist.twist.angular.x = 0.0
+        twist.twist.angular.y = 0.0
+        twist.twist.angular.z = control['v_des'][3]
         
         # Extract Desired Arm Opening Angle
         jointReferenceMsg.position = control['alpha']

@@ -103,6 +103,9 @@ class StateMachine(object):
         # Extract new desired control values
         p_des, v_des, self.tau_min = self.searching_pattern.get_ref_pos_vel(x=x[:3], last_tau=self.tau_min)
 
+        # Append zero to v_des for yaw control
+        v_des = np.append(v_des, 0.0)
+
         if self.tau_min >= 0.99:
             self.searching_pattern.step_height(0.075)
             self.target_pos_estimate[2] += 0.1
@@ -123,7 +126,7 @@ class StateMachine(object):
             p_des = self.target_pos_estimate
         yaw_des = self.target_yaw_estimate
 
-        v_des = np.zeros(3)        
+        v_des = np.zeros(4)        
         
         return {'alpha': self.alpha,
                 'p_des': p_des,
@@ -137,7 +140,7 @@ class StateMachine(object):
         yaw_des = self.target_yaw_estimate
         
         self.alpha = np.ones(3)
-        v_des = np.zeros(3)
+        v_des = np.zeros(4)
         
         return {'alpha': self.alpha,
                 'p_des': p_des,
@@ -180,7 +183,8 @@ class StateMachine(object):
         self.alpha[indeces] += dalpha[indeces]
         self.alpha = np.clip(self.alpha, a_min=0.0, a_max=1.0)
         
-        v_des = np.zeros(3)
+        v_des = np.zeros(4)
+        v_des[3] = omega_des
 
         return {'alpha': self.alpha,
                 'p_des': p_des,
@@ -193,7 +197,7 @@ class StateMachine(object):
         yaw_des = self.target_yaw_estimate
 
         self.alpha = np.ones(3) * np.min(self.alpha)
-        v_des = np.zeros(3)
+        v_des = np.zeros(4)
         
         return {'alpha': self.alpha,
                 'p_des': p_des,
@@ -208,7 +212,8 @@ class StateMachine(object):
         yaw_des = self.target_yaw_estimate
 
         self.alpha = np.ones(3) * np.min(self.alpha)
-        v_des = np.zeros(3)
+        v_des = np.zeros(4)
+        v_des[3] = omega_des
         
         
         return {'alpha': self.alpha,
