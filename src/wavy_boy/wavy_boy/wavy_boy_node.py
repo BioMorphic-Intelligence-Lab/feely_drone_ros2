@@ -46,7 +46,7 @@ class WavyBoyNode(Node):
         # Subscribers
         self._touch_state_subscriber = self.create_subscription(
             TouchData,
-            '/feely_drone/out/touch_state',
+            '/feely_drone/out/touch_data',
             self.touch_data_callback,
             qos_profile_sensor_data
         )
