@@ -166,7 +166,7 @@ class StateMachine(object):
         yaw_des = self.target_yaw_estimate
 
         cT = np.cos(x[3])
-        sT = np.sin(x[4])
+        sT = np.sin(x[3])
 
         rot = np.array([[cT, -sT, 0],
                         [sT,  cT, 0],
