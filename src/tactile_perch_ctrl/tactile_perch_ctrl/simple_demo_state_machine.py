@@ -15,8 +15,8 @@ class SimpleDemoStateMachine(object):
         self.dt = dt
         self.alpha_rate = alpha_rate
         self.alpha = np.ones(3)
-        self.state = State.SEARCHING      
-        
+        self.state = State.SEARCHING
+
         self.target_pos_estimate = np.zeros(3)
         self.target_yaw_estimate = 0.0
         self.reference_pos = np.zeros(3)
@@ -24,7 +24,7 @@ class SimpleDemoStateMachine(object):
     def reset(self):
 
         self.alpha = np.ones(3)
-        self.state = State.SEARCHING   
+        self.state = State.SEARCHING
 
         self.reference_pos = np.zeros(3)
         self.target_pos_estimate = np.zeros(3)
@@ -40,9 +40,9 @@ class SimpleDemoStateMachine(object):
         _, _ = contact, v
 
         # Extract new desired control values
-        p_des = self.target_pos_estimate - np.array([0, 0.2, 0.0]) - np.array([0, 0, 0.1])
+        p_des = self.target_pos_estimate - np.array([0.2, 0.0, 0.0]) - np.array([0, 0, 0.1])
         yaw_des = self.target_yaw_estimate
-        
+
         # Return control actions
         return {'alpha': self.alpha,
                 'p_des': p_des,
@@ -94,7 +94,7 @@ class SimpleDemoStateMachine(object):
         if self.state == State.SEARCHING:
             ctrl = self.searching_position_control(x, v, contact)
             self.reference_pos = ctrl["p_des"]  
-            if np.linalg.norm(x[:3] - self.reference_pos) < 0.05:
+            if np.linalg.norm(x[:3] - self.reference_pos) < 0.025:
                 self.state = State.TOUCHED
                 print("STATE CHANGE: SEARCHING -> TOUCHED")
         elif self.state == State.TOUCHED:

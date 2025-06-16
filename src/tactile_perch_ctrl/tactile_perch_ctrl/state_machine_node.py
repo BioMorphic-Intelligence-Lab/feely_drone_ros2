@@ -22,7 +22,7 @@ class StateMachineNode(Node):
         self.declare_parameter("frequency", 20.0)
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 250Hz, so 10 samples corresponds to 0.025 seconds
         self.declare_parameter("touch_threshold", 50)
-        self.declare_parameter("init_target_pos_estimate", [2.0, 0.1, 2.0])
+        self.declare_parameter("init_target_pos_estimate", [2.04, 0.1, 2.06])
         # Get all parameters
         self.frequency = self.get_parameter("frequency").get_parameter_value().double_value
         self.touch_window_size = self.get_parameter("touch_window_size").get_parameter_value().integer_value
@@ -80,14 +80,14 @@ class StateMachineNode(Node):
                                target_pos_estimate=np.array(init_target_pos_estimate),
                                target_yaw_estimate=np.zeros([1]),
                                searching_pattern=SinusoidalSearchPattern(
-                                    params=np.stack([[0.75, 0.75, 0],   # Amplitude
+                                    params=np.stack([[0.5, 0.5, 0],   # Amplitude
                                                      [2.0, 1.0, 0.0],   # Frequency
                                                      [0.0, 0.0, 0.0],   # Phase Shift
-                                                     [0.0, 0.0, 1.5]]), # Offset
+                                                     init_target_pos_estimate - np.array([0, 0, 0.15])]), # Offset
                                     dt=1.0 / self.frequency,
-                                    vel_norm=0.15)
+                                    vel_norm=0.25)
         )
-        
+
         # Init the binary touch state
         self._bin_touch_state = np.zeros(9, dtype=bool)
 
