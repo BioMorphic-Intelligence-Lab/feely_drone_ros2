@@ -68,8 +68,8 @@ class WavyBoyNode(Node):
                     [~self.bin_touch_data[:, 2].any(),
                      ~self.bin_touch_data[:, 0].any(),
                      ~self.bin_touch_data[:, 1].any()])
-        self._k += nocontact.astype(int)        
-        self._alpha = np.sin(self.ALPHA_RATE * self._k * self.DT)
+        self._k += nocontact.astype(int)
+        self._alpha = 0.5 * np.sin(self.ALPHA_RATE * self._k * self.DT) + 0.5
         joint_state_msg.position = self._alpha.tolist()
 
         # Publish the JointState message
