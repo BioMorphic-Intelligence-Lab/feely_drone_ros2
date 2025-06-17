@@ -83,7 +83,7 @@ class StateMachineNode(Node):
                                     params=np.stack([[0.5, 0.5, 0],   # Amplitude
                                                      [2.0, 1.0, 0.0],   # Frequency
                                                      [0.0, 0.0, 0.0],   # Phase Shift
-                                                     init_target_pos_estimate - np.array([0, 0, 0.15])]), # Offset
+                                                     init_target_pos_estimate - np.array([0, 0, 0.3])]), # Offset
                                     dt=1.0 / self.frequency,
                                     vel_norm=0.25)
         )

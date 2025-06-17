@@ -117,7 +117,7 @@ class StateMachine(object):
         if np.linalg.norm(dist) < 0.25:
             v_des = np.zeros(4)  # Stop when close enough
         else:
-            v_des = 0.5 * np.append([dist / np.linalg.norm(dist)], 0)  # No yawrate control during takeoff
+            v_des = 0.5 * np.append(dist, 0)  # No yawrate control during takeoff
 
         return {'alpha': self.alpha,
                 'p_des': p_des,
