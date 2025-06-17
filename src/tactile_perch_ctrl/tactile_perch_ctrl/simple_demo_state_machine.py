@@ -56,7 +56,7 @@ class SimpleDemoStateMachine(object):
         _, _ = contact, v
 
         # Extract new desired control values
-        p_des = self.target_pos_estimate - np.array([0.2, 0.0, 0.0]) - np.array([0, 0, 0.2])
+        p_des = self.target_pos_estimate - np.array([0.2, 0.0, 0.0]) - np.array([0, 0, 0.25])
         yaw_des = self.target_yaw_estimate
 
         # Return control actions
@@ -67,7 +67,7 @@ class SimpleDemoStateMachine(object):
 
     def position_align_control(self, x, v, contact, p_des=None):
         
-        p_des = self.target_pos_estimate - np.array([0, 0, 0.1])
+        p_des = self.target_pos_estimate - np.array([0, 0, 0.25])
         yaw_des = self.target_yaw_estimate
 
         v_des = np.zeros(4)        
@@ -110,19 +110,19 @@ class SimpleDemoStateMachine(object):
         if self.state == State.TAKEOFF:
             ctrl = self.takeoff_control(x, v, contact)
             self.reference_pos = ctrl["p_des"]  
-            if np.linalg.norm(x[:3] - self.reference_pos) < 0.1:
+            if np.linalg.norm(x[:3] - self.reference_pos) < 0.1 and np.linalg.norm(v[:3]) < 0.025:
                 self.state = State.SEARCHING
                 print("STATE CHANGE: TAKEOFF -> SEARCHING")
         elif self.state == State.SEARCHING:
             ctrl = self.searching_position_control(x, v, contact)
             self.reference_pos = ctrl["p_des"]  
-            if np.linalg.norm(x[:3] - self.reference_pos) < 0.05:
+            if np.linalg.norm(x[:3] - self.reference_pos) < 0.05 and np.linalg.norm(v[:3]) < 0.025:
                 self.state = State.TOUCHED
                 print("STATE CHANGE: SEARCHING -> TOUCHED")
         elif self.state == State.TOUCHED:
             ctrl = self.position_align_control(x, v, contact)
             self.reference_pos = ctrl["p_des"]  
-            if np.linalg.norm(x[:3] - self.reference_pos) < 0.05:
+            if np.linalg.norm(x[:3] - self.reference_pos) < 0.05 and np.linalg.norm(v[:3]) < 0.025:
                 self.state = State.ROTATION
                 print("STATE CHANGE: TOUCHED -> ROTATION")
         elif self.state == State.ROTATION:
