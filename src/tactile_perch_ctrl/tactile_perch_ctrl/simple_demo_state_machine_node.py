@@ -5,6 +5,7 @@ from collections import deque
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data, qos_profile_default
 
+from .state_machine import State
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from sensor_msgs.msg import JointState
 from visualization_msgs.msg import Marker, MarkerArray
@@ -27,7 +28,7 @@ class SimpleDemoStateMachineNode(Node):
         self._ref_pos_publisher = self.create_publisher(PoseStamped, '/feely_drone/in/ref_pose', qos_profile_sensor_data)
         self._ref_twist_publisher = self.create_publisher(TwistStamped, '/feely_drone/in/ref_twist', qos_profile_sensor_data)
         self._ref_joint_state_publisher = self.create_publisher(JointState, '/feely_drone/in/servo_states', qos_profile_default)
-        self._sm_State_publisher = self.create_publisher(StateMachineState, '/feely_drone/out/state_machine_state', qos_profile_sensor_data)
+        self._sm_state_publisher = self.create_publisher(StateMachineState, '/feely_drone/out/state_machine_state', qos_profile_sensor_data)
         
         # Subscribers
         self._odometry_subscriber = self.create_subscription(PoseStamped, '/feely_drone/out/pose', self.odometry_data_callback, qos_profile_sensor_data)
@@ -56,7 +57,7 @@ class SimpleDemoStateMachineNode(Node):
         self._ref_pos_publisher.publish(pose_msg)
         self._ref_twist_publisher.publish(twist_msg)
         self._ref_joint_state_publisher.publish(joint_state_msg)
-        self._sm_State_publisher.publish(sm_state_msg)
+        self._sm_state_publisher.publish(sm_state_msg)
 
 
     def get_references(self):
@@ -82,15 +83,27 @@ class SimpleDemoStateMachineNode(Node):
                                   v=np.zeros(4),
                                   contact=np.zeros(3, dtype=bool)  # Assuming no contact for this example
         )
+
+
         # Extract Desired Position
         dist = np.linalg.norm(control['p_des'] - self._position)
-        if dist < 0.05:
-            cmd = np.zeros(3)
+        if self.sm.state == State.TAKEOFF:
+            if dist < 0.25:
+                cmd = np.zeros(3)
+            else:
+                cmd = 0.5 * (control['p_des'] - self._position) / dist
+            
+            pose.pose.position.x = control['p_des'][0]
+            pose.pose.position.y = control['p_des'][1]
+            pose.pose.position.z = control['p_des'][2]
         else:
-            cmd = 0.2 * (control['p_des'] - self._position) / dist
-        pose.pose.position.x = self._position[0] + self.dt * cmd[0]
-        pose.pose.position.y = self._position[1] + self.dt * cmd[1]
-        pose.pose.position.z = self._position[2] + self.dt * cmd[2]
+            if dist < 0.05:
+                cmd = np.zeros(3)
+            else:
+                cmd = 0.2 * (control['p_des'] - self._position) / dist
+            pose.pose.position.x = self._position[0] + self.dt * cmd[0]
+            pose.pose.position.y = self._position[1] + self.dt * cmd[1]
+            pose.pose.position.z = self._position[2] + self.dt * cmd[2]
 
         # Extract Desired Yaw
         pose.pose.orientation.w = np.cos(control['yaw_des'] / 2.0)

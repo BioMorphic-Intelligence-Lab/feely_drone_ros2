@@ -10,12 +10,14 @@ class SimpleDemoStateMachine(object):
 
     def __init__(self,
                  dt,
-                 alpha_rate=1.0/10.0):
+                 alpha_rate=1.0/10.0,
+                 takeoff_position=np.array([0.0, 0.0, 1.5])):
 
         self.dt = dt
         self.alpha_rate = alpha_rate
         self.alpha = np.ones(3)
-        self.state = State.SEARCHING
+        self.state = State.TAKEOFF
+        self.takeoff_position = takeoff_position
 
         self.target_pos_estimate = np.zeros(3)
         self.target_yaw_estimate = 0.0
@@ -24,7 +26,7 @@ class SimpleDemoStateMachine(object):
     def reset(self):
 
         self.alpha = np.ones(3)
-        self.state = State.SEARCHING
+        self.state = State.TAKEOFF
 
         self.reference_pos = np.zeros(3)
         self.target_pos_estimate = np.zeros(3)
@@ -33,6 +35,20 @@ class SimpleDemoStateMachine(object):
         """Set the target position estimate."""
         self.target_pos_estimate = np.array(pos)
         self.target_yaw_estimate = yaw
+
+    def takeoff_control(self, x, v, contact):
+        """
+        Control for takeoff state.
+        This is a placeholder and should be implemented based on the specific requirements of the takeoff procedure.
+        """
+        yaw_des = self.target_yaw_estimate
+        p_des = self.takeoff_position
+        v_des = np.zeros(4)  # No velocity control during takeoff
+
+        return {'alpha': self.alpha,
+                'p_des': p_des,
+                'v_des': v_des,
+                'yaw_des': yaw_des}
 
     def searching_position_control(self, x, v, contact):
 
@@ -91,7 +107,13 @@ class SimpleDemoStateMachine(object):
     
     def control(self, x, v, contact):
 
-        if self.state == State.SEARCHING:
+        if self.state == State.TAKEOFF:
+            ctrl = self.takeoff_control(x, v, contact)
+            self.reference_pos = ctrl["p_des"]  
+            if np.linalg.norm(x[:3] - self.reference_pos) < 0.05:
+                self.state = State.SEARCHING
+                print("STATE CHANGE: TAKEOFF -> SEARCHING")
+        elif self.state == State.SEARCHING:
             ctrl = self.searching_position_control(x, v, contact)
             self.reference_pos = ctrl["p_des"]  
             if np.linalg.norm(x[:3] - self.reference_pos) < 0.025:
@@ -114,5 +136,4 @@ class SimpleDemoStateMachine(object):
             ctrl = self.finalize_grasp_control(x, v, contact)
         else:
             ctrl = self.position_align_control(x, v, contact)
-        
         return ctrl

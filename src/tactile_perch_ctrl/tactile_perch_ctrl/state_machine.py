@@ -14,6 +14,7 @@ class State(Enum):
     FINALIZE = 6
     PERCH = 7
     ABORT = 8
+    TAKEOFF = 9
 
 class StateMachine(object):
 
@@ -23,7 +24,8 @@ class StateMachine(object):
                  searching_pattern=None,
                  target_pos_estimate=np.array([0, 0, 0.5]),
                  target_yaw_estimate=np.zeros(1),
-                 alpha_rate=1.0/10.0):
+                 alpha_rate=1.0/10.0,
+                 takeoff_position=np.array([0, 0, 1.5])):
 
         if searching_pattern is None:
             self.searching_pattern = (CompositeSearchPattern([
@@ -45,7 +47,8 @@ class StateMachine(object):
         self.target_pos_estimate = target_pos_estimate
         self.alpha_rate = alpha_rate
         self.alpha = np.ones(3)
-        self.state = State.SEARCHING      
+        self.state = State.TAKEOFF
+        self.takeoff_position = takeoff_position   
         
         self.tactile_info_sw = np.zeros([10, 3, 3], dtype=float)
 
@@ -73,7 +76,7 @@ class StateMachine(object):
         self.target_pos_estimate = self.init_target_pos_estimate.copy()
         self.target_yaw_estimate = self.init_target_yaw_estimate.copy()
         self.alpha = np.ones(3)
-        self.state = State.SEARCHING   
+        self.state = State.TAKEOFF  
         self.searching_pattern.reset()
 
         self.tactile_info_sw = np.zeros([10, 3, 3], dtype=float)
@@ -82,7 +85,6 @@ class StateMachine(object):
         self.contact_locs = self.forward_kinematics(np.zeros(4), np.reshape([self.q0] * 3, [3,3]))
 
         self.tau_min=-1
-
 
     def get_des_yaw_vel(self, contacts, rot_vel=0.2):
         rows = np.sum(np.array([1.0, 3.0, 2.0]) * contacts, axis=1)
@@ -102,6 +104,25 @@ class StateMachine(object):
             return rot_vel
         else:
             return 0.0
+
+    def takeoff_control(self, x, v, contact):
+        """
+        Control for takeoff state.
+        This is a placeholder and should be implemented based on the specific requirements of the takeoff procedure.
+        """
+        yaw_des = self.target_yaw_estimate
+        p_des = self.takeoff_position
+        dist = self.takeoff_position - x[:3]
+        
+        if np.linalg.norm(dist) < 0.25:
+            v_des = np.zeros(4)  # Stop when close enough
+        else:
+            v_des = 0.5 * np.append([dist / np.linalg.norm(dist)], 0)  # No yawrate control during takeoff
+
+        return {'alpha': self.alpha,
+                'p_des': p_des,
+                'v_des': v_des,
+                'yaw_des': yaw_des}
 
     def searching_position_control(self, x, v, contact):
 
@@ -265,7 +286,6 @@ class StateMachine(object):
         config = self.newton_solve(alpha)
         return config
 
-
     def forward_kinematics(self, p, joint_angles):
         """
         Computes the forward kinematics for a system with 3 arms, each with 3 links.
@@ -343,7 +363,13 @@ class StateMachine(object):
 
     def control(self, x, v, contact):
 
-        if self.state == State.SEARCHING:
+        if self.state == State.TAKEOFF:
+            ctrl = self.takeoff_control(x, v, contact)
+            self.reference_pos = ctrl["p_des"]  
+            if np.linalg.norm(x[:3] - self.reference_pos) < 0.05:
+                self.state = State.SEARCHING
+                print("STATE CHANGE: TAKEOFF -> SEARCHING")
+        elif self.state == State.SEARCHING:
             ctrl = self.searching_position_control(x, v, contact)
             self.reference_pos = ctrl["p_des"]  
             if contact.any():
