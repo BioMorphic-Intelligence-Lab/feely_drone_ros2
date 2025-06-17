@@ -56,7 +56,7 @@ class SimpleDemoStateMachine(object):
         _, _ = contact, v
 
         # Extract new desired control values
-        p_des = self.target_pos_estimate - np.array([0.2, 0.0, 0.0]) - np.array([0, 0, 0.1])
+        p_des = self.target_pos_estimate - np.array([0.2, 0.0, 0.0]) - np.array([0, 0, 0.2])
         yaw_des = self.target_yaw_estimate
 
         # Return control actions
@@ -110,13 +110,13 @@ class SimpleDemoStateMachine(object):
         if self.state == State.TAKEOFF:
             ctrl = self.takeoff_control(x, v, contact)
             self.reference_pos = ctrl["p_des"]  
-            if np.linalg.norm(x[:3] - self.reference_pos) < 0.05:
+            if np.linalg.norm(x[:3] - self.reference_pos) < 0.1:
                 self.state = State.SEARCHING
                 print("STATE CHANGE: TAKEOFF -> SEARCHING")
         elif self.state == State.SEARCHING:
             ctrl = self.searching_position_control(x, v, contact)
             self.reference_pos = ctrl["p_des"]  
-            if np.linalg.norm(x[:3] - self.reference_pos) < 0.025:
+            if np.linalg.norm(x[:3] - self.reference_pos) < 0.05:
                 self.state = State.TOUCHED
                 print("STATE CHANGE: SEARCHING -> TOUCHED")
         elif self.state == State.TOUCHED:

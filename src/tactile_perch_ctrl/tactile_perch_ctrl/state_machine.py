@@ -381,7 +381,7 @@ class StateMachine(object):
             ctrl = self.position_align_control(x, v, contact, self.reference_pos)
             if np.linalg.norm(x[:3] - self.reference_pos) < 0.05:
                 self.state = State.APPROACH
-                self.reference_pos = self.target_pos_estimate - np.array([0, 0, 0.1])
+                self.reference_pos = self.target_pos_estimate - np.array([0, 0, 0.2])
                 print("STATE CHANGE: TOUCHED -> APPROACH")
         elif self.state == State.APPROACH:
             ctrl = self.position_align_control(x, v, contact, self.reference_pos)
