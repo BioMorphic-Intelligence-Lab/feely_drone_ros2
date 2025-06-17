@@ -89,7 +89,7 @@ class SimpleDemoStateMachineNode(Node):
         # Extract Desired Position
         dist = np.linalg.norm(control['p_des'] - self._position)
         if self.sm.state == State.TAKEOFF:
-            if dist < 0.05:
+            if dist < 0.01:
                 cmd = np.zeros(3)
             else:
                 cmd = 0.05 * (control['p_des'] - self._position)
@@ -98,10 +98,10 @@ class SimpleDemoStateMachineNode(Node):
             pose.pose.position.y = control['p_des'][1]
             pose.pose.position.z = control['p_des'][2]
         else:
-            if dist < 0.05:
+            if dist < 0.01:
                 cmd = np.zeros(3)
             else:
-                cmd = 0.3 * (control['p_des'] - self._position)
+                cmd = 0.4 * (control['p_des'] - self._position)
             pose.pose.position.x = self._position[0] + self.dt * cmd[0]
             pose.pose.position.y = self._position[1] + self.dt * cmd[1]
             pose.pose.position.z = self._position[2] + self.dt * cmd[2]
