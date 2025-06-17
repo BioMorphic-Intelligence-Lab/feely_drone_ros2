@@ -42,6 +42,7 @@ class SimpleDemoStateMachineNode(Node):
 
         # Pose
         self._position = np.zeros(3, dtype=float)
+        self._velocity = np.zeros(3, dtype=float)
         self._yaw = 0.0
 
     def timer_callback(self):
@@ -80,7 +81,7 @@ class SimpleDemoStateMachineNode(Node):
         # Compute reference pose and arm opening angle
         control = self.sm.control(x=np.concatenate((self._position,
                                                     [self._yaw])),
-                                  v=np.zeros(4),
+                                  v=self._velocity,
                                   contact=np.zeros(3, dtype=bool)  # Assuming no contact for this example
         )
 
@@ -88,19 +89,19 @@ class SimpleDemoStateMachineNode(Node):
         # Extract Desired Position
         dist = np.linalg.norm(control['p_des'] - self._position)
         if self.sm.state == State.TAKEOFF:
-            if dist < 0.25:
+            if dist < 0.05:
                 cmd = np.zeros(3)
             else:
-                cmd = 0.5 * (control['p_des'] - self._position) / dist
+                cmd = 0.05 * (control['p_des'] - self._position)
             
             pose.pose.position.x = control['p_des'][0]
             pose.pose.position.y = control['p_des'][1]
             pose.pose.position.z = control['p_des'][2]
         else:
-            if dist < 0.1:
+            if dist < 0.05:
                 cmd = np.zeros(3)
             else:
-                cmd = 0.5 * dist * (control['p_des'] - self._position) / dist
+                cmd = 0.3 * (control['p_des'] - self._position)
             pose.pose.position.x = self._position[0] + self.dt * cmd[0]
             pose.pose.position.y = self._position[1] + self.dt * cmd[1]
             pose.pose.position.z = self._position[2] + self.dt * cmd[2]
@@ -125,6 +126,11 @@ class SimpleDemoStateMachineNode(Node):
         return pose, twist, jointReferenceMsg
 
     def odometry_data_callback(self, msg: PoseStamped):
+        self._velocity = 1.0 / self.dt * np.array([
+            msg.pose.position.x - self._position[0],
+            msg.pose.position.y - self._position[1],
+            msg.pose.position.z - self._position[2]
+        ], dtype=float)
         self._position = np.array([msg.pose.position.x,
                                   msg.pose.position.y,
                                   msg.pose.position.z], dtype=float)
