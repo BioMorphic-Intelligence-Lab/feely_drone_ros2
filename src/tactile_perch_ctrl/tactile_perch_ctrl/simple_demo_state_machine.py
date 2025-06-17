@@ -67,7 +67,7 @@ class SimpleDemoStateMachine(object):
 
     def position_align_control(self, x, v, contact, p_des=None):
         
-        p_des = self.target_pos_estimate
+        p_des = self.target_pos_estimate - np.array([0, 0, 0.1])
         yaw_des = self.target_yaw_estimate
 
         v_des = np.zeros(4)        
@@ -79,7 +79,7 @@ class SimpleDemoStateMachine(object):
         
     def perch_control(self, x, v, contact):
 
-        p_des = self.target_pos_estimate
+        p_des = self.target_pos_estimate - np.array([0, 0, 0.1])
         yaw_des = self.target_yaw_estimate
 
         dalpha = self.alpha_rate * self.dt * np.ones(3)
