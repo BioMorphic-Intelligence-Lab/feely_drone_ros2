@@ -26,7 +26,7 @@ class StateMachineNode(Node):
         # Get all parameters
         self.frequency = self.get_parameter("frequency").get_parameter_value().double_value
         self.touch_window_size = self.get_parameter("touch_window_size").get_parameter_value().integer_value
-        init_target_pos_estimate = self.get_parameter("init_target_pos_estimate").get_parameter_value().double_array_value
+        self.init_target_pos_estimate = self.get_parameter("init_target_pos_estimate").get_parameter_value().double_array_value
         self.TOUCH_THRESHOLD = self.get_parameter("touch_threshold").get_parameter_value().integer_value
 
         # Init queue for touch data
@@ -44,6 +44,7 @@ class StateMachineNode(Node):
         # Subscribers
         self._touch_data_subscriber = self.create_subscription(TouchData, '/feely_drone/out/touch_data', self.touch_data_callback, qos_profile_sensor_data)
         self._odometry_subscriber = self.create_subscription(PoseStamped, '/feely_drone/out/pose', self.odometry_data_callback, qos_profile_sensor_data)
+        self._target_pos_subscriber = self.create_subscription(PoseStamped, '/target/out/pose', self.target_pos_callback, qos_profile_sensor_data)
 
         # Init Timers
         self.timer = self.create_timer(1.0 / self.frequency, self.timer_callback)
@@ -77,13 +78,13 @@ class StateMachineNode(Node):
                                A=-120 * np.ones(3),                # Actuation map
                                q0=np.deg2rad(75) * np.ones(3),     # Neutral joint states
                                g=np.array([0, 0, -9.81]),          # Gravity Vector
-                               target_pos_estimate=np.array(init_target_pos_estimate),
+                               target_pos_estimate=np.array(self.init_target_pos_estimate),
                                target_yaw_estimate=np.zeros([1]),
                                searching_pattern=SinusoidalSearchPattern(
                                     params=np.stack([[0.5, 0.5, 0],   # Amplitude
                                                      [2.0, 1.0, 0.0],   # Frequency
                                                      [0.0, 0.0, 0.0],   # Phase Shift
-                                                     init_target_pos_estimate - np.array([0, 0, 0.3])]), # Offset
+                                                     self.init_target_pos_estimate - np.array([0, 0, 0.2])]), # Offset
                                     dt=1.0 / self.frequency,
                                     vel_norm=0.25)
         )
@@ -94,6 +95,12 @@ class StateMachineNode(Node):
         # Pose
         self._position = np.zeros(3, dtype=float)
         self._yaw = 0.0
+
+    def target_pos_callback(self, msg: PoseStamped):
+        self.init_target_pos_estimate = np.array([msg.pose.position.x,
+                                                  msg.pose.position.y,
+                                                  msg.pose.position.z], dtype=float)
+        self.sm.target_pos_estimate = self.init_target_pos_estimate
 
     def timer_callback(self):
         # Get the reference pose and joint state messages
