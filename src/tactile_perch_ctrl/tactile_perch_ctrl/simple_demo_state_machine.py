@@ -23,6 +23,8 @@ class SimpleDemoStateMachine(object):
         self.target_yaw_estimate = 0.0
         self.reference_pos = np.zeros(3)
 
+        self.start = 0.0
+
     def reset(self):
 
         self.alpha = np.ones(3)
@@ -50,14 +52,18 @@ class SimpleDemoStateMachine(object):
                 'v_des': v_des,
                 'yaw_des': yaw_des}
 
-    def searching_position_control(self, x, v, contact):
+    def searching_position_control(self, t, x, v, contact):
 
         # Explicitly state that we are not using this here
         _, _ = contact, v
 
         # Extract new desired control values
-        p_des = self.target_pos_estimate - np.array([0.2, 0.0, 0.0]) - np.array([0, 0, 0.16])
+        p_des = self.target_pos_estimate - np.array([0.15, 0.0, 0.0]) - np.array([0, 0, 0.1])
         yaw_des = self.target_yaw_estimate
+
+        omega = 2.0 * np.pi / 5.0
+        amplitude = 0.4
+        self.alpha = (1.0 - amplitude * (np.sin(omega * (t - self.start) - np.pi/2) + 1.0) / 2.0) * np.ones(3)
 
         # Return control actions
         return {'alpha': self.alpha,
@@ -67,7 +73,7 @@ class SimpleDemoStateMachine(object):
 
     def position_align_control(self, x, v, contact, p_des=None):
         
-        p_des = self.target_pos_estimate - np.array([0, 0, 0.16])
+        p_des = self.target_pos_estimate - np.array([0, 0, 0.10])
         yaw_des = self.target_yaw_estimate
 
         v_des = np.zeros(4)        
@@ -79,7 +85,7 @@ class SimpleDemoStateMachine(object):
         
     def perch_control(self, x, v, contact):
 
-        p_des = self.target_pos_estimate - np.array([0, 0, 0.075])
+        p_des = self.target_pos_estimate - np.array([0, 0, 0.05])
         yaw_des = self.target_yaw_estimate
 
         dalpha = self.alpha_rate * self.dt * np.ones(3)
@@ -105,19 +111,21 @@ class SimpleDemoStateMachine(object):
                 'v_des': v_des,
                 'yaw_des': yaw_des}
     
-    def control(self, x, v, contact):
+    def control(self, t, x, v, contact):
 
         if self.state == State.TAKEOFF:
             ctrl = self.takeoff_control(x, v, contact)
             self.reference_pos = ctrl["p_des"]  
             if np.linalg.norm(x[:3] - self.reference_pos) < 0.1 and np.linalg.norm(v[:3]) < 0.05:
                 self.state = State.SEARCHING
+                self.start = t
                 print("STATE CHANGE: TAKEOFF -> SEARCHING")
         elif self.state == State.SEARCHING:
-            ctrl = self.searching_position_control(x, v, contact)
+            ctrl = self.searching_position_control(t, x, v, contact)
             self.reference_pos = ctrl["p_des"]  
             if np.linalg.norm(x[:3] - self.reference_pos) < 0.1 and np.linalg.norm(v[:3]) < 0.05:
                 self.state = State.TOUCHED
+                self.alpha = np.ones(3)
                 print("STATE CHANGE: SEARCHING -> TOUCHED")
         elif self.state == State.TOUCHED:
             ctrl = self.position_align_control(x, v, contact)

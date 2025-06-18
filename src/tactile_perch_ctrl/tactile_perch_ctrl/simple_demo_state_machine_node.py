@@ -79,7 +79,8 @@ class SimpleDemoStateMachineNode(Node):
         jointReferenceMsg.name = [f'arm{i+1}' for i in range(3)]
         
         # Compute reference pose and arm opening angle
-        control = self.sm.control(x=np.concatenate((self._position,
+        control = self.sm.control(t=self.get_clock().now().nanoseconds / 1e9,
+                                  x=np.concatenate((self._position,
                                                     [self._yaw])),
                                   v=self._velocity,
                                   contact=np.zeros(3, dtype=bool)  # Assuming no contact for this example
