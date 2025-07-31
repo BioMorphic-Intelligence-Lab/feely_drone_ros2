@@ -65,9 +65,9 @@ class WavyBoyNode(Node):
         #joint_state_msg.name = ['joint_1', 'joint_2', 'joint_3']
 
         nocontact = np.array(
-                    [~self.bin_touch_data[:, 2].any(),
-                     ~self.bin_touch_data[:, 0].any(),
-                     ~self.bin_touch_data[:, 1].any()])
+                    [self.bin_touch_data[:, 2].any(),
+                     self.bin_touch_data[:, 0].any(),
+                     self.bin_touch_data[:, 1].any()])
         self._k += nocontact.astype(int)
         self._alpha = 0.5 * np.sin(self.ALPHA_RATE * self._k * self.DT) + 0.5
         joint_state_msg.position = self._alpha.tolist()

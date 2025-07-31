@@ -1,4 +1,5 @@
 build/
 log/
 install/
+src/tactile_perch_ctrl/feely_drone_common
 .vscode/

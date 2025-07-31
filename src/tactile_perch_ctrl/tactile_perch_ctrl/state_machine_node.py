@@ -10,8 +10,7 @@ from sensor_msgs.msg import JointState
 from visualization_msgs.msg import Marker, MarkerArray
 from custom_msgs.msg import TouchData, StateMachineState
 
-from .state_machine import StateMachine
-from .search_pattern import SinusoidalSearchPattern
+from feely_drone_common import StateMachine, SinusoidalSearchPattern
 
 class StateMachineNode(Node):
 
@@ -88,6 +87,7 @@ class StateMachineNode(Node):
                                     dt=1.0 / self.frequency,
                                     vel_norm=0.25)
         )
+        
 
         # Init the binary touch state
         self._bin_touch_state = np.zeros(9, dtype=bool)
@@ -224,6 +224,7 @@ class StateMachineNode(Node):
         )
 
 def main(args=None):
+
     rclpy.init(args=args)
 
     feely_drone_state_machine = StateMachineNode()
