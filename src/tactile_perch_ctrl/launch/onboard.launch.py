@@ -1,6 +1,5 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.actions import ExecuteProcess
 
 def generate_launch_description():
     return LaunchDescription([
@@ -19,17 +18,5 @@ def generate_launch_description():
             package='px4_interface',
             executable='px4_interface_node',
             name='px4_interface_node',
-        ),
-        ExecuteProcess(
-            cmd=['docker', 'run', '-it', '--rm', '--privileged',
-                 '--net', 'host',  'antbre/uxrce_agent serial',
-                  '--dev', '/dev/ttyAMA0', '-b', '921600'],
-            output='screen'
-        ),
-        ExecuteProcess(
-            cmd=['docker', 'run', '-it', '--rm', '--privileged',
-                 '--net', 'host',  'antbre/uxrce_agent serial',
-                  '--dev', '/dev/ttyACM0'],
-            output='screen'
         )
     ])
