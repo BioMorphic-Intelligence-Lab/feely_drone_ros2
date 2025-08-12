@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     python3-rosdep \
     && rm -rf /var/lib/apt/lists/*
 
+RUN pip3 install scipy --break-system-packages
 RUN pip3 install adafruit-circuitpython-mpr121 --break-system-packages
 RUN pip3 install RPi.GPIO --break-system-packages
 

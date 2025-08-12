@@ -11,9 +11,9 @@ services:
     network_mode: 'host'
     command: serial --dev /dev/ttyAMA0 -b 921600
 
-  tactile-sensor-driver:
-    image: antbre/tactile_sensor_driver
-    privileged: true 
-    network_mode: 'host'
+  #tactile-sensor-driver:
+  #  image: antbre/tactile_sensor_driver
+  #  privileged: true 
+  #  network_mode: 'host'
 
   # Start state machine
