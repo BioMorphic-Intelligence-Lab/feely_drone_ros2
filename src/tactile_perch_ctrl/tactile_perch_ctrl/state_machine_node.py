@@ -20,12 +20,16 @@ class StateMachineNode(Node):
         # Declare all parameters
         self.declare_parameter("frequency", 20.0)
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 25Hz, so 10 samples corresponds to 0.4 seconds
-        self.declare_parameter("touch_threshold", 5)
+        self.declare_parameter("touch_threshold", 10)
         self.declare_parameter("init_target_pos_estimate", [2.04, 0.1, 2.06])
+        self.declare_parameter("target_pos_estimetate_offset", [0.0, 0.0, 0.0])
+        self.declare_parameter("target_yaw_estimetate_offset", 0.0)
         # Get all parameters
         self.frequency = self.get_parameter("frequency").get_parameter_value().double_value
         self.touch_window_size = self.get_parameter("touch_window_size").get_parameter_value().integer_value
         self.init_target_pos_estimate = self.get_parameter("init_target_pos_estimate").get_parameter_value().double_array_value
+        self.target_pos_estimate_offset = self.get_parameter("target_pos_estimate_offset").get_parameter_value().double_array_value
+        self.target_yaw_estimate_offset = self.get_parameter("target_yaw_estimate_offset").get_parameter_value().double_value
         self.TOUCH_THRESHOLD = self.get_parameter("touch_threshold").get_parameter_value().integer_value
 
         # Init queue for touch data
@@ -86,13 +90,13 @@ class StateMachineNode(Node):
 
         # Pose
         self._position = np.zeros(3, dtype=float)
-        self._yaw = 0.0
+        self._yaw = 0.0 + self.target_yaw_estimate_offset
 
     def target_pos_callback(self, msg: PoseStamped):
         self.init_target_pos_estimate = np.array([msg.pose.position.x,
                                                   msg.pose.position.y,
                                                   msg.pose.position.z], dtype=float)
-        self.sm.target_pos_estimate = self.init_target_pos_estimate
+        self.sm.target_pos_estimate = self.init_target_pos_estimate + self.target_pos_estimate_offset
 
     def timer_callback(self):
         # Get the reference pose and joint state messages
