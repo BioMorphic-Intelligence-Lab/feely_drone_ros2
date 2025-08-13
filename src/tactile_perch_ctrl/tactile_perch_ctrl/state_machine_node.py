@@ -35,6 +35,7 @@ class StateMachineNode(Node):
         # Init queue for touch data
         self.touch_data_deque = deque(np.zeros([1, 12], dtype=int), maxlen=self.touch_window_size)
         self.touch_data_baseline_deque = deque(np.zeros([1, 12], dtype=int), maxlen=self.touch_window_size)
+        self.baseline_data_set = 0
 
         # Publishers
         self._ref_pos_publisher = self.create_publisher(PoseStamped, '/feely_drone/in/ref_pose', qos_profile_sensor_data)
@@ -207,8 +208,11 @@ class StateMachineNode(Node):
         self.touch_data_deque.popleft()
         self.touch_data_deque.append(np.array(msg.raw_data, dtype=int))
 
-        self.touch_data_baseline_deque.popleft()
-        self.touch_data_baseline_deque.append(np.array(msg.baseline_data, dtype=int))
+        if self.baseline_data_set == self.touch_data_baseline_deque.maxlen:
+            self.touch_data_baseline_deque.popleft()
+            self.touch_data_baseline_deque.append(np.array(msg.baseline_data, dtype=int))
+
+            self.baseline_data_set += 1
 
     def odometry_data_callback(self, msg: PoseStamped):
         self._position = np.array([msg.pose.position.x,
