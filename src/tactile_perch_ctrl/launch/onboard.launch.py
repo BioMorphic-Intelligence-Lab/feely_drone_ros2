@@ -7,7 +7,7 @@ def generate_launch_description():
             package='tactile_perch_ctrl',
             executable='touch_sensor_driver',
             name='touch_sensor_driver',
-            parameters=[{'frequency': 250.0}],
+            parameters=[{'frequency': 25.0}],
         ),
         Node(
             package='tactile_perch_ctrl',

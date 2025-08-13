@@ -19,7 +19,7 @@ class TouchSensorDriver(Node):
         self._touch_data_publisher = self.create_publisher(TouchData, '/feely_drone/out/touch_data', qos.QoSPresetProfiles.SENSOR_DATA.value)
 
         # Get parameters
-        self.declare_parameter("frequency", 250.0)
+        self.declare_parameter("frequency", 25.0)
         self.frequency = self.get_parameter("frequency").get_parameter_value().double_value
         self.timer = self.create_timer(1.0 / self.frequency, self.timer_callback)
         # Create I2C bus.
