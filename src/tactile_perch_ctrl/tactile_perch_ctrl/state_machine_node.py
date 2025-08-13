@@ -52,6 +52,7 @@ class StateMachineNode(Node):
 
         # Init Timers
         self.timer = self.create_timer(1.0 / self.frequency, self.timer_callback)
+        self.start = self.get_clock().now() / 1e9
 
         # Init static offsets for the arms 
         p0 = np.array([[ 0.125, 0.125, 0.0],
@@ -209,7 +210,8 @@ class StateMachineNode(Node):
         self.touch_data_deque.append(np.array(msg.raw_data, dtype=int))
 
         if (self.baseline_data_set <= self.touch_data_baseline_deque.maxlen
-            and (self.sm.alpha > 0.75).all()):
+            and (self.sm.alpha > 0.9).all() 
+            and self.get_clock().now / 1e9 - self.start > 1.0):
             self.touch_data_baseline_deque.popleft()
             self.touch_data_baseline_deque.append(np.array(msg.baseline_data, dtype=int))
 
