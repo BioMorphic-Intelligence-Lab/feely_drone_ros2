@@ -209,7 +209,7 @@ class StateMachineNode(Node):
         self.touch_data_deque.append(np.array(msg.raw_data, dtype=int))
 
         if (self.baseline_data_set <= self.touch_data_baseline_deque.maxlen
-            and self.sm.alpha > 0.75):
+            and (self.sm.alpha > 0.75).all()):
             self.touch_data_baseline_deque.popleft()
             self.touch_data_baseline_deque.append(np.array(msg.baseline_data, dtype=int))
 
