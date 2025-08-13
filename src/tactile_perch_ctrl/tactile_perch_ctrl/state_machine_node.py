@@ -20,7 +20,7 @@ class StateMachineNode(Node):
         # Declare all parameters
         self.declare_parameter("frequency", 20.0)
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 25Hz, so 10 samples corresponds to 0.4 seconds
-        self.declare_parameter("touch_threshold", 50.0)
+        self.declare_parameter("touch_threshold", 0.01)
         self.declare_parameter("init_target_pos_estimate", [2.04, 0.1, 2.06])
         self.declare_parameter("target_pos_estimate_offset", [0.0, 0.0, 0.0])
         self.declare_parameter("target_yaw_estimate_offset", 0.0)
@@ -34,7 +34,7 @@ class StateMachineNode(Node):
 
         # Init queue for touch data
         self.touch_data_deque = deque(np.zeros([1, 12], dtype=int), maxlen=self.touch_window_size)
-        self.touch_data_baseline_deque = deque(np.zeros([1, 12], dtype=int), maxlen=self.touch_window_size)
+        self.touch_data_baseline_deque = deque(np.ones([1, 12], dtype=int), maxlen=self.touch_window_size)
         self.baseline_data_set = 0
 
         # Publishers
@@ -163,8 +163,8 @@ class StateMachineNode(Node):
 
         # Compute the current touch state and publish for debugging purposes
         self._bin_touch_state = np.mean(
-             np.array(self.touch_data_deque)
-           - np.array(self.touch_data_baseline_deque)
+             (np.array(self.touch_data_deque) - np.array(self.touch_data_baseline_deque))
+             / np.array(self.touch_data_baseline_deque)
             , axis=0) < -self.TOUCH_THRESHOLD
         binTouchStateMsg.position = self._bin_touch_state.astype(float)
         self._bin_touch_data_publisher.publish(binTouchStateMsg)
