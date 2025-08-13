@@ -52,7 +52,7 @@ class StateMachineNode(Node):
 
         # Init Timers
         self.timer = self.create_timer(1.0 / self.frequency, self.timer_callback)
-        self.start = self.get_clock().nanoseconds / 1e9
+        self.start = self.get_clock().now().nanoseconds / 1e9
 
         # Init static offsets for the arms 
         p0 = np.array([[ 0.125, 0.125, 0.0],
