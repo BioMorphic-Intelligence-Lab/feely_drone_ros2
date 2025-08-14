@@ -97,7 +97,7 @@ class StateMachineNode(Node):
         self.init_target_pos_estimate = np.array([msg.pose.position.x,
                                                   msg.pose.position.y,
                                                   msg.pose.position.z], dtype=float)
-        self.sm.target_pos_estimate = self.init_target_pos_estimate + self.target_pos_estimate_offset
+        self.sm.update_target_pos_estimate(self.init_target_pos_estimate + self.target_pos_estimate_offset)
 
     def timer_callback(self):
         # Get the reference pose and joint state messages
