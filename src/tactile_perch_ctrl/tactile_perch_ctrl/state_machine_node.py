@@ -20,7 +20,7 @@ class StateMachineNode(Node):
         # Declare all parameters
         self.declare_parameter("frequency", 20.0)
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 25Hz, so 10 samples corresponds to 0.4 seconds
-        self.declare_parameter("touch_threshold", 0.01)
+        self.declare_parameter("touch_threshold", 0.05)
         self.declare_parameter("init_target_pos_estimate", [2.04, 0.1, 2.06])
         self.declare_parameter("target_pos_estimate_offset", [0.0, 0.0, 0.0])
         self.declare_parameter("target_yaw_estimate_offset", 0.0)
@@ -54,15 +54,15 @@ class StateMachineNode(Node):
         self.timer = self.create_timer(1.0 / self.frequency, self.timer_callback)
         self.start = self.get_clock().now().nanoseconds / 1e9
 
-        # Init static offsets for the arms 
-        p0 = np.array([[ 0.125, 0.125, 0.0],
-                       [ -0.125, 0.0, 0.0],
-                       [ 0.125,  -0.125, 0.0],])
+        # Init static offsets for the arms
+        p0 = np.array([[-0.125,  0.125, 0.0],
+		       [-0.125, -0.125, 0.0],
+		       [ 0.125, 0.0, 0.0]])
         rot0 = np.array([
             R.from_euler('xyz', [-np.deg2rad(90), 0.0,  np.deg2rad(90)]).as_matrix(),
-            R.from_euler('xyz', [-np.deg2rad(90), 0.0,  -np.deg2rad(90)]).as_matrix(),
             R.from_euler('xyz', [-np.deg2rad(90), 0.0,  np.deg2rad(90)]).as_matrix(),
-        ]).reshape(3, 3, 3)  
+            R.from_euler('xyz', [-np.deg2rad(90), 0.0, -np.deg2rad(90)]).as_matrix(),
+        ]).reshape(3, 3, 3)
 
 
         # Init the state machine
@@ -85,7 +85,6 @@ class StateMachineNode(Node):
                                     dt=1.0 / self.frequency,
                                     vel_norm=0.25)
         )
-        
 
         # Init the binary touch state
         self._bin_touch_state = np.zeros(9, dtype=bool)
@@ -191,7 +190,7 @@ class StateMachineNode(Node):
         pose.pose.orientation.x = 0.0
         pose.pose.orientation.y = 0.0
         pose.pose.orientation.z = np.sin(control['yaw_des'][0] / 2.0)
-        
+
         # Extract Desired Velocity
         twist.twist.linear.x = control['v_des'][0]
         twist.twist.linear.y = control['v_des'][1]
@@ -199,7 +198,7 @@ class StateMachineNode(Node):
         twist.twist.angular.x = 0.0
         twist.twist.angular.y = 0.0
         twist.twist.angular.z = control['v_des'][3]
-        
+
         # Extract Desired Arm Opening Angle
         jointReferenceMsg.position = control['alpha']
 
@@ -211,7 +210,7 @@ class StateMachineNode(Node):
 
         if (self.baseline_data_set <= self.touch_data_baseline_deque.maxlen
             and (self.sm.alpha > 0.9).all()
-            and self.get_clock().now().nanoseconds / 1e9 - self.start > 10.0):
+            and self.get_clock().now().nanoseconds / 1e9 - self.start > 3.0):
             self.touch_data_baseline_deque.popleft()
             self.touch_data_baseline_deque.append(np.array(msg.baseline_data, dtype=int))
 
