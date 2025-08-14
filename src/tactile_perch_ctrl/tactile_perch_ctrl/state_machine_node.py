@@ -20,7 +20,7 @@ class StateMachineNode(Node):
         # Declare all parameters
         self.declare_parameter("frequency", 20.0)
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 25Hz, so 10 samples corresponds to 0.4 seconds
-        self.declare_parameter("touch_threshold", 0.30)
+        self.declare_parameter("touch_threshold", 0.25)
         self.declare_parameter("init_target_pos_estimate", [2.04, 0.1, 2.06])
         self.declare_parameter("target_pos_estimate_offset", [0.0, 0.0, 0.0])
         self.declare_parameter("target_yaw_estimate_offset", 0.0)
@@ -210,7 +210,7 @@ class StateMachineNode(Node):
 
         if (self.baseline_data_set <= self.touch_data_baseline_deque.maxlen
             and (self.sm.alpha > 0.9).all()
-            and self.get_clock().now().nanoseconds / 1e9 - self.start > 3.0):
+            and self.get_clock().now().nanoseconds / 1e9 - self.start > 5.0):
             self.touch_data_baseline_deque.popleft()
             self.touch_data_baseline_deque.append(np.array(msg.baseline_data, dtype=int))
 
