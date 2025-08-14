@@ -94,10 +94,12 @@ class StateMachineNode(Node):
         self._yaw = 0.0 + self.target_yaw_estimate_offset
 
     def target_pos_callback(self, msg: PoseStamped):
-        self.init_target_pos_estimate = np.array([msg.pose.position.x,
-                                                  msg.pose.position.y,
-                                                  msg.pose.position.z], dtype=float)
-        self.sm.update_target_pos_estimate(self.init_target_pos_estimate + self.target_pos_estimate_offset)
+        # Update from OptiTrack in the first 5 seconds to get the target position
+        if self.get_clock().now().nanoseconds / 1e9 - self.start < 5.0:
+            self.init_target_pos_estimate = np.array([msg.pose.position.x,
+                                                    msg.pose.position.y,
+                                                    msg.pose.position.z], dtype=float)
+            self.sm.update_target_pos_estimate(self.init_target_pos_estimate + self.target_pos_estimate_offset)
 
     def timer_callback(self):
         # Get the reference pose and joint state messages
