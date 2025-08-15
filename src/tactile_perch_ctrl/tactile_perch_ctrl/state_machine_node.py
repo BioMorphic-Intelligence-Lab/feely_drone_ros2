@@ -58,9 +58,9 @@ class StateMachineNode(Node):
         self.start = self.get_clock().now().nanoseconds / 1e9
 
         # Init static offsets for the arms
-        p0 = np.array([[-0.125,  0.125, 0.0],
-		       [-0.125, -0.125, 0.0],
-		       [ 0.125, 0.0, 0.0]])
+        p0 = np.array([ [-0.125,  0.125, 0.0],
+                        [-0.125, -0.125, 0.0],
+                        [ 0.125, 0.0, 0.0]])
         rot0 = np.array([
             R.from_euler('xyz', [-np.deg2rad(90), 0.0,  np.deg2rad(90)]).as_matrix(),
             R.from_euler('xyz', [-np.deg2rad(90), 0.0,  np.deg2rad(90)]).as_matrix(),
@@ -113,11 +113,17 @@ class StateMachineNode(Node):
         sm_state_msg.state = self.sm.state.value
         sm_state_msg.header.stamp = pose_msg.header.stamp
 
+        # Set the takeoff position above where we are in the first 3 seconds
+        if self.get_clock().now().nanoseconds / 1e9 - self.start < 3.0:
+            takeoff_position = self._position
+            takeoff_position[2] = 1.5
+            self.sm.set_takeoff_position(takeoff_position)
         # Publish the reference pose and joint state messages
-        self._ref_pos_publisher.publish(pose_msg)
-        self._ref_twist_publisher.publish(twist_msg)
-        self._ref_joint_state_publisher.publish(joint_state_msg)
-        self._sm_State_publisher.publish(sm_state_msg)
+        else:
+            self._ref_pos_publisher.publish(pose_msg)
+            self._ref_twist_publisher.publish(twist_msg)
+            self._ref_joint_state_publisher.publish(joint_state_msg)
+            self._sm_State_publisher.publish(sm_state_msg)
 
         # Publish the contact marker for visualization
         contact_locs = self.sm.contact_locs
