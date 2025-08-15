@@ -20,9 +20,9 @@ class StateMachineNode(Node):
         # Declare all parameters
         self.declare_parameter("frequency", 20.0)
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 25Hz, so 10 samples corresponds to 0.4 seconds
-        self.declare_parameter("touch_threshold", [0.1, 0.1, 0.1,
-                                                   0.1, 0.1, 0.1,
-                                                   0.1, 0.1, 0.1,
+        self.declare_parameter("touch_threshold", [0.05, 0.05, 0.05,
+                                                   0.05, 0.05, 0.05,
+                                                   0.05, 0.05, 0.05,
                                                    0.8, 0.8, 0.8])
         self.declare_parameter("init_target_pos_estimate", [2.04, 0.1, 2.06])
         self.declare_parameter("target_pos_estimate_offset", [0.0, 0.0, 0.0])
@@ -71,7 +71,7 @@ class StateMachineNode(Node):
         # Init the state machine
         self.sm = StateMachine(dt=1.0 / self.frequency,            # Delta T
                                m_arm=np.ones(3),                   # Mass of the Arm
-                               l_arm=np.array([0.15, 0.25, 0.25]), # Length of the Arm
+                               l_arm=np.array([0.055, 0.04, 0.045]), # Length of the Arm
                                p0=p0,                              # Offset Position of Arms
                                rot0=rot0,                          # Offset Rotation of Arms
                                K=np.diag(100*np.ones(3)),          # Stiffness Matrix of the arm
@@ -100,8 +100,9 @@ class StateMachineNode(Node):
         # Update from OptiTrack in the first 5 seconds to get the target position
         if self.get_clock().now().nanoseconds / 1e9 - self.start < 5.0:
             self.init_target_pos_estimate = np.array([msg.pose.position.x,
-                                                    msg.pose.position.y,
-                                                    msg.pose.position.z], dtype=float)
+                                                      msg.pose.position.y,
+                                                      msg.pose.position.z - 0.15],
+                                                     dtype=float)
             self.sm.update_target_pos_estimate(self.init_target_pos_estimate + self.target_pos_estimate_offset)
 
     def timer_callback(self):
