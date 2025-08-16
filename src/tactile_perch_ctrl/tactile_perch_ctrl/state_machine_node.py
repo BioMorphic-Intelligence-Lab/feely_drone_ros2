@@ -101,7 +101,7 @@ class StateMachineNode(Node):
         if self.get_clock().now().nanoseconds / 1e9 - self.start < 5.0:
             self.init_target_pos_estimate = np.array([msg.pose.position.x,
                                                       msg.pose.position.y,
-                                                      msg.pose.position.z - 0.15],
+                                                      msg.pose.position.z - 0.2],
                                                      dtype=float)
             self.sm.update_target_pos_estimate(self.init_target_pos_estimate + self.target_pos_estimate_offset)
 
@@ -114,17 +114,20 @@ class StateMachineNode(Node):
         sm_state_msg.state = self.sm.state.value
         sm_state_msg.header.stamp = pose_msg.header.stamp
 
-        # Set the takeoff position above where we are in the first 3 seconds
-        if self.get_clock().now().nanoseconds / 1e9 - self.start < 3.0:
-            takeoff_position = self._position
-            takeoff_position[2] = 1.5
+        # Set the takeoff position above where we are in the first 2 seconds
+        if self.get_clock().now().nanoseconds / 1e9 - self.start < 2.0:
+            takeoff_position = np.array([self._position[0],
+				         self._position[1],
+                                         1.5])
             self.sm.set_takeoff_position(takeoff_position)
-        # Publish the reference pose and joint state messages
+        # Publish the reference pose and vel otherwise
         else:
             self._ref_pos_publisher.publish(pose_msg)
             self._ref_twist_publisher.publish(twist_msg)
-            self._ref_joint_state_publisher.publish(joint_state_msg)
-            self._sm_State_publisher.publish(sm_state_msg)
+
+        # Publish ref joint state and State Machine State
+        self._ref_joint_state_publisher.publish(joint_state_msg)
+        self._sm_State_publisher.publish(sm_state_msg)
 
         # Publish the contact marker for visualization
         contact_locs = self.sm.contact_locs
@@ -220,11 +223,12 @@ class StateMachineNode(Node):
         self.touch_data_deque.popleft()
         self.touch_data_deque.append(np.array(msg.raw_data, dtype=int))
 
-        if (self.baseline_data_set <= self.touch_data_baseline_deque.maxlen
+        if (self.baseline_data_set <= self.touch_window_size
             and (self.sm.alpha > 0.9).all()
-            and self.get_clock().now().nanoseconds / 1e9 - self.start > 5.0):
+	    and self.get_clock().now().nanoseconds / 1e9 - self.start > 1.0):
+
             self.touch_data_baseline_deque.popleft()
-            self.touch_data_baseline_deque.append(np.array(msg.baseline_data, dtype=int))
+            self.touch_data_baseline_deque.append(np.array(msg.raw_data, dtype=int))
 
             self.baseline_data_set += 1
 
