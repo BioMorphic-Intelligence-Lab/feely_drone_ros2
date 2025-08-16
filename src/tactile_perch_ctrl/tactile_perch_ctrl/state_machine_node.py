@@ -20,9 +20,9 @@ class StateMachineNode(Node):
         # Declare all parameters
         self.declare_parameter("frequency", 20.0)
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 25Hz, so 10 samples corresponds to 0.4 seconds
-        self.declare_parameter("touch_threshold", [0.1, 0.1, 0.1,
-                                                   0.1, 0.1, 0.1,
-                                                   0.1, 0.1, 0.1,
+        self.declare_parameter("touch_threshold", [0.075, 0.075, 0.075,
+                                                   0.075, 0.075, 0.075,
+                                                   0.075, 0.075, 0.075,
                                                    0.8, 0.8, 0.8])
         self.declare_parameter("init_target_pos_estimate", [2.04, 0.1, 2.06])
         self.declare_parameter("target_pos_estimate_offset", [0.0, 0.0, 0.0])
@@ -71,7 +71,7 @@ class StateMachineNode(Node):
         # Init the state machine
         self.sm = StateMachine(dt=1.0 / self.frequency,            # Delta T
                                m_arm=np.ones(3),                   # Mass of the Arm
-                               l_arm=np.array([0.055, 0.04, 0.045]), # Length of the Arm
+                               l_arm=np.array([0.035, 0.03, 0.035]), # Length of the Arm
                                p0=p0,                              # Offset Position of Arms
                                rot0=rot0,                          # Offset Rotation of Arms
                                K=np.diag(100*np.ones(3)),          # Stiffness Matrix of the arm
@@ -84,7 +84,7 @@ class StateMachineNode(Node):
                                     params=np.stack([[0.5, 0.5, 0],   # Amplitude
                                                      [2.0, 1.0, 0.0],   # Frequency
                                                      [0.0, 0.0, 0.0],   # Phase Shift
-                                                     self.init_target_pos_estimate - np.array([0, 0, 0.2])]), # Offset
+                                                     self.init_target_pos_estimate - np.array([0, 0, 0.15])]), # Offset
                                     dt=1.0 / self.frequency,
                                     vel_norm=0.25)
         )
@@ -101,7 +101,7 @@ class StateMachineNode(Node):
         if self.get_clock().now().nanoseconds / 1e9 - self.start < 5.0:
             self.init_target_pos_estimate = np.array([msg.pose.position.x,
                                                       msg.pose.position.y,
-                                                      msg.pose.position.z - 0.2],
+                                                      msg.pose.position.z - 0.15],
                                                      dtype=float)
             self.sm.update_target_pos_estimate(self.init_target_pos_estimate + self.target_pos_estimate_offset)
 
