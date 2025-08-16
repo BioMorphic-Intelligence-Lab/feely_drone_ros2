@@ -5,11 +5,12 @@ from collections import deque
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data, qos_profile_default
 
-from geometry_msgs.msg import PoseStamped, TwistStamped
+from geometry_msgs.msg import PoseStamped, TwistStamped, TransformStamped
 from sensor_msgs.msg import JointState
 from visualization_msgs.msg import Marker, MarkerArray
-from custom_msgs.msg import TouchData, StateMachineState
+from tf2_ros import TransformBroadcaster
 
+from custom_msgs.msg import TouchData, StateMachineState
 from feely_drone_common import StateMachine, SinusoidalSearchPattern
 
 class StateMachineNode(Node):
@@ -47,6 +48,8 @@ class StateMachineNode(Node):
         self._bin_touch_data_publisher = self.create_publisher(JointState, '/feely_drone/out/bin_touch_state', qos_profile_sensor_data)
         self._sm_State_publisher = self.create_publisher(StateMachineState, '/feely_drone/out/state_machine_state', qos_profile_sensor_data)
         self._contact_marker_publisher = self.create_publisher(MarkerArray, '/feely_drone/out/contact_marker', qos_profile_sensor_data)
+        # TF broadcaster
+        self._tf_broadcaster = TransformBroadcaster(self)
 
         # Subscribers
         self._touch_data_subscriber = self.create_subscription(TouchData, '/feely_drone/out/touch_data', self.touch_data_callback, qos_profile_sensor_data)
@@ -170,7 +173,7 @@ class StateMachineNode(Node):
         pose.header.stamp = timestamp_now
         pose.header.frame_id = 'world'
         twist.header.stamp = timestamp_now
-        twist.header.frame_id = 'world'
+        twist.header.frame_id = 'body'
         jointReferenceMsg.header.stamp = timestamp_now
         jointReferenceMsg.name = [f'arm{i+1}' for i in range(3)]
         binTouchStateMsg.header.stamp = timestamp_now
@@ -245,6 +248,19 @@ class StateMachineNode(Node):
             2.0 * (msg.pose.orientation.w * msg.pose.orientation.z + msg.pose.orientation.x * msg.pose.orientation.y),
                    msg.pose.orientation.w**2 + msg.pose.orientation.x**2 - msg.pose.orientation.y**2 - msg.pose.orientation.z**2
         )
+
+        t = TransformStamped()
+        t.header.stamp = msg.header.stamp
+        t.header.frame_id = msg.header.frame_id  # "world"
+        t.child_frame_id = "body"                # name of your body frame
+
+        t.transform.translation.x = msg.pose.position.x
+        t.transform.translation.y = msg.pose.position.y
+        t.transform.translation.z = msg.pose.position.z
+        t.transform.rotation = msg.pose.orientation
+
+        # Broadcast the transform
+        self._tf_broadcaster.sendTransform(t)
 
 def main(args=None):
 
