@@ -37,7 +37,7 @@ class StateMachineNode(Node):
 
         # Init queue for touch data
         self.touch_data_deque = deque(np.zeros([1, 12], dtype=int), maxlen=self.touch_window_size)
-        self.touch_data_baseline_deque = deque(np.ones([1, 12], dtype=int), maxlen=self.touch_window_size)
+        self.touch_data_baseline_deque = deque(100*np.ones([1, 12], dtype=int), maxlen=self.touch_window_size)
         self.baseline_data_set = 0
 
         # Publishers
@@ -114,10 +114,10 @@ class StateMachineNode(Node):
         sm_state_msg.state = self.sm.state.value
         sm_state_msg.header.stamp = pose_msg.header.stamp
 
-        # Set the takeoff position above where we are in the first 2 seconds
-        if self.get_clock().now().nanoseconds / 1e9 - self.start < 2.0:
+        # Set the takeoff position above where we are in the first 5 seconds
+        if self.get_clock().now().nanoseconds / 1e9 - self.start < 5.0:
             takeoff_position = np.array([self._position[0],
-				         self._position[1],
+				                         self._position[1],
                                          1.5])
             self.sm.set_takeoff_position(takeoff_position)
         # Publish the reference pose and vel otherwise
@@ -174,6 +174,11 @@ class StateMachineNode(Node):
         jointReferenceMsg.header.stamp = timestamp_now
         jointReferenceMsg.name = [f'arm{i+1}' for i in range(3)]
         binTouchStateMsg.header.stamp = timestamp_now
+
+        if np.isclose(np.array(self.touch_data_baseline_deque), 0.0, atol=2).any():
+            self.get_logger().error(f"Some Touch Data Baseline {np.array(self.touch_data_baseline_deque)} is zero." +
+                                    f"Are your touch sensors shorted?")
+            rclpy.shutdown()
 
         # Compute the current touch state and publish for debugging purposes
         self._bin_touch_state = np.mean(
