@@ -257,7 +257,7 @@ class StateMachineNode(Node):
         t.transform.translation.x = msg.pose.position.x
         t.transform.translation.y = msg.pose.position.y
         t.transform.translation.z = msg.pose.position.z
-        t.transform.rotation = msg.pose.orientation
+        t.transform.rotation.w = 1.0
 
         # Broadcast the transform
         self._tf_broadcaster.sendTransform(t)
