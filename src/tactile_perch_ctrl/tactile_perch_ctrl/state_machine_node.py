@@ -82,7 +82,7 @@ class StateMachineNode(Node):
                                q0=np.deg2rad(75) * np.ones(3),     # Neutral joint states
                                g=np.array([0, 0, -9.81]),          # Gravity Vector
                                target_pos_estimate=np.array(self.init_target_pos_estimate),
-                               target_yaw_estimate=np.zeros([1]),
+                               target_yaw_estimate=np.zeros([1]) + self.target_pos_estimate_offset,
                                searching_pattern=SinusoidalSearchPattern(
                                     params=np.stack([[0.5, 0.5, 0],   # Amplitude
                                                      [2.0, 1.0, 0.0],   # Frequency
@@ -97,7 +97,7 @@ class StateMachineNode(Node):
 
         # Pose
         self._position = np.zeros(3, dtype=float)
-        self._yaw = 0.0 + self.target_yaw_estimate_offset
+        self._yaw = 0.0
 
     def target_pos_callback(self, msg: PoseStamped):
         # Update from OptiTrack in the first 5 seconds to get the target position
@@ -107,6 +107,7 @@ class StateMachineNode(Node):
                                                       msg.pose.position.z - 0.15],
                                                      dtype=float)
             self.sm.update_target_pos_estimate(self.init_target_pos_estimate + self.target_pos_estimate_offset)
+            self.sm.update_target_yaw_estimate(0.0 + self.target_yaw_estimate_offset)
 
     def timer_callback(self):
         # Get the reference pose and joint state messages
