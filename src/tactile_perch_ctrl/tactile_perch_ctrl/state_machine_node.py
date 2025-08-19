@@ -33,7 +33,7 @@ class StateMachineNode(Node):
         self.touch_window_size = self.get_parameter("touch_window_size").get_parameter_value().integer_value
         self.init_target_pos_estimate = self.get_parameter("init_target_pos_estimate").get_parameter_value().double_array_value
         self.target_pos_estimate_offset = self.get_parameter("target_pos_estimate_offset").get_parameter_value().double_array_value
-        self.target_yaw_estimate_offset = self.get_parameter("target_yaw_estimate_offset").get_parameter_value().double_value
+        self.target_yaw_estimate_offset = np.deg2rad(self.get_parameter("target_yaw_estimate_offset").get_parameter_value().double_value)
         self.TOUCH_THRESHOLD = np.array(self.get_parameter("touch_threshold").get_parameter_value().double_array_value)
 
         # Init queue for touch data
