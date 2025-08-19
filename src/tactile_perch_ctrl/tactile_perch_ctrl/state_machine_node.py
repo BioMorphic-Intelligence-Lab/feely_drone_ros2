@@ -82,7 +82,7 @@ class StateMachineNode(Node):
                                q0=np.deg2rad(75) * np.ones(3),     # Neutral joint states
                                g=np.array([0, 0, -9.81]),          # Gravity Vector
                                target_pos_estimate=np.array(self.init_target_pos_estimate),
-                               target_yaw_estimate=np.zeros([1]) + self.target_pos_estimate_offset,
+                               target_yaw_estimate=np.zeros([1]) + self.target_yaw_estimate_offset,
                                searching_pattern=SinusoidalSearchPattern(
                                     params=np.stack([[0.5, 0.5, 0],   # Amplitude
                                                      [2.0, 1.0, 0.0],   # Frequency
