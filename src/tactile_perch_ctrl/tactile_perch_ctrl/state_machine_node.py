@@ -23,7 +23,7 @@ class StateMachineNode(Node):
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 25Hz, so 10 samples corresponds to 0.4 seconds
         self.declare_parameter("touch_threshold", [0.075, 0.075, 0.15,
                                                    0.075, 0.075, 0.25,
-                                                   0.075, 0.075, 0.15,
+                                                   0.075, 0.075, 0.25,
                                                    0.8, 0.8, 0.8])
         self.declare_parameter("init_target_pos_estimate", [2.04, 0.1, 2.06])
         self.declare_parameter("target_pos_estimate_offset", [0.0, 0.0, 0.0])
