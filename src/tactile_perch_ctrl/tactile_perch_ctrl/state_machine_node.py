@@ -61,9 +61,9 @@ class StateMachineNode(Node):
         self.start = self.get_clock().now().nanoseconds / 1e9
 
         # Init static offsets for the arms
-        p0 = np.array([ [-0.125,  0.125, 0.0],
-                        [-0.125, -0.125, 0.0],
-                        [ 0.125, 0.0, 0.0]])
+        p0 = np.array([ [-0.075,  0.125, 0.0],
+                        [-0.075, -0.125, 0.0],
+                        [ 0.075, 0.0, 0.0]])
         rot0 = np.array([
             R.from_euler('xyz', [-np.deg2rad(90), 0.0,  np.deg2rad(90)]).as_matrix(),
             R.from_euler('xyz', [-np.deg2rad(90), 0.0,  np.deg2rad(90)]).as_matrix(),
@@ -74,7 +74,7 @@ class StateMachineNode(Node):
         # Init the state machine
         self.sm = StateMachine(dt=1.0 / self.frequency,            # Delta T
                                m_arm=np.ones(3),                   # Mass of the Arm
-                               l_arm=np.array([0.035, 0.03, 0.035]), # Length of the Arm
+                               l_arm=np.array([0.035, 0.035, 0.035]), # Length of the Arm
                                p0=p0,                              # Offset Position of Arms
                                rot0=rot0,                          # Offset Rotation of Arms
                                K=np.diag(100*np.ones(3)),          # Stiffness Matrix of the arm
