@@ -230,14 +230,14 @@ class StateMachineNode(Node):
 
     def touch_data_callback(self, msg: TouchData):
         self.touch_data_deque.popleft()
-        self.touch_data_deque.append(np.array(msg.raw_data, dtype=int))
+        self.touch_data_deque.append(np.array(msg.raw_data, dtype=int)[:9])
 
         if (self.baseline_data_set <= self.touch_window_size
             and (self.sm.alpha > 0.9).all()
 	    and self.get_clock().now().nanoseconds / 1e9 - self.start > 1.0):
 
             self.touch_data_baseline_deque.popleft()
-            self.touch_data_baseline_deque.append(np.array(msg.raw_data, dtype=int))
+            self.touch_data_baseline_deque.append(np.array(msg.raw_data[:9], dtype=int))
 
             self.baseline_data_set += 1
 
