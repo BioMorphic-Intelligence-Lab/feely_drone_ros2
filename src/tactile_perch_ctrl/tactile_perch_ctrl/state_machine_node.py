@@ -23,8 +23,8 @@ class StateMachineNode(Node):
         self.declare_parameter("touch_window_size", 10) # This assumes touch data is published at 25Hz, so 10 samples corresponds to 0.4 seconds
         self.declare_parameter("touch_threshold", [0.075, 0.075, 0.15,
                                                    0.075, 0.075, 0.25,
-                                                   0.075, 0.075, 0.25,
-                                                   0.8, 0.8, 0.8])
+                                                   0.075, 0.075, 0.25]),
+                                                   #0.8, 0.8, 0.8])
         self.declare_parameter("init_target_pos_estimate", [2.04, 0.1, 2.06])
         self.declare_parameter("target_pos_estimate_offset", [0.0, 0.0, 0.0])
         self.declare_parameter("target_yaw_estimate_offset", 0.0)
@@ -98,6 +98,8 @@ class StateMachineNode(Node):
         # Pose
         self._position = np.zeros(3, dtype=float)
         self._yaw = 0.0
+        self._roll = 0.0
+        self._pitch = 0.0
 
     def target_pos_callback(self, msg: PoseStamped):
         # Update from OptiTrack in the first 5 seconds to get the target position
@@ -200,7 +202,7 @@ class StateMachineNode(Node):
 
         # Compute reference pose and arm opening angle
         control = self.sm.control(x=np.concatenate((self._position,
-                                                    [self._yaw])),
+                                                    [self._roll, self._pitch, self._yaw])),
                                   v=np.zeros(4),
                                   contact=touchData
         )
@@ -245,10 +247,12 @@ class StateMachineNode(Node):
         self._position = np.array([msg.pose.position.x,
                                   msg.pose.position.y,
                                   msg.pose.position.z], dtype=float)
-        self._yaw = np.arctan2(
-            2.0 * (msg.pose.orientation.w * msg.pose.orientation.z + msg.pose.orientation.x * msg.pose.orientation.y),
-                   msg.pose.orientation.w**2 + msg.pose.orientation.x**2 - msg.pose.orientation.y**2 - msg.pose.orientation.z**2
-        )
+
+
+        self._roll, self._pitch, self._yaw = R.from_quat(np.array([msg.pose.orientation.x,
+                                                                   msg.pose.orientation.y,
+                                                                   msg.pose.orientation.z,
+                                                                   msg.pose.orientation.w])).as_euler('xyz')
 
         t = TransformStamped()
         t.header.stamp = msg.header.stamp
