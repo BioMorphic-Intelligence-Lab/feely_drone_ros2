@@ -37,8 +37,8 @@ class StateMachineNode(Node):
         self.TOUCH_THRESHOLD = np.array(self.get_parameter("touch_threshold").get_parameter_value().double_array_value)
 
         # Init queue for touch data
-        self.touch_data_deque = deque(np.zeros([1, 12], dtype=int), maxlen=self.touch_window_size)
-        self.touch_data_baseline_deque = deque(100*np.ones([1, 12], dtype=int), maxlen=self.touch_window_size)
+        self.touch_data_deque = deque(np.zeros([1, 9], dtype=int), maxlen=self.touch_window_size)
+        self.touch_data_baseline_deque = deque(100*np.ones([1, 9], dtype=int), maxlen=self.touch_window_size)
         self.baseline_data_set = 0
 
         # Publishers
